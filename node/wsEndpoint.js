@@ -1,8 +1,8 @@
 const Node = require("../common/node.js");
-const Connection = require("./tcpConnection.js");
+const Connection = require("./wsConnection.js");
 const Log = require("../utils/log.js");
 
-class TCPEndpoint extends Node {
+class WSEndpoint extends Node {
 	constructor (server, pingOptions) {
 		super();
 		
@@ -42,4 +42,4 @@ class TCPEndpoint extends Node {
 	}
 }
 
-module.exports = TCPEndpoint;
+module.exports = WSEndpoint;

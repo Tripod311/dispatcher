@@ -4,7 +4,7 @@ const Address = require("../common/address.js");
 const JSONStreamProcessor = require("../utils/jsonStreamProcessor.js");
 const Log = require("../utils/log.js");
 
-class TCPConnection extends Node {
+class WSConnection extends Node {
 	constructor (id, socket, pingOptions) {
 		super ();
 
@@ -25,8 +25,7 @@ class TCPConnection extends Node {
 	attach (dispatcher, address) {
 		super.attach.call(this, dispatcher, address);
 
-		this.processor = new JSONStreamProcessor(this.socket);
-		this.processor.on("message", this.proxy.message);
+		this.socket.on("message", this.proxy.message);
 		this.socket.on("error", this.proxy.error);
 		this.socket.on("close", this.proxy.close);
 
@@ -43,16 +42,14 @@ class TCPConnection extends Node {
 	}
 
 	detach () {
-		this.processor.destructor();
 		clearInterval(this.pingInterval);
-		this.socket.end();
-		this.socket.destroy();
+		this.socket.close();
 
 		super.detach.call(this);
 	}
 
 	dispatch (address, hopIndex, event) {
-		this.socket.write(JSON.stringify({
+		this.socket.send(JSON.stringify({
 			sender: event.sender.data,
 			destination: event.destination.data,
 			data: event.data,
@@ -61,8 +58,10 @@ class TCPConnection extends Node {
 		}));
 	}
 
-	onMessage (event) {
+	onMessage (raw) {
 		try {
+			let event = JSON.parse(raw.toString("utf8"));
+
 			if (!event.data || !event.data.command) {
 				Log.error(`Invalid message format\n${JSON.stringify(event)}`, 1);
 				return;
@@ -91,7 +90,7 @@ class TCPConnection extends Node {
 	}
 
 	onClose () {
-		Log.info("TCPConnection " + this.id + " closed", 1);
+		Log.info("WSConnection " + this.id + " closed", 1);
 
 		this.send(this.address.parent, {
 			command: "closeConnection",
@@ -100,7 +99,7 @@ class TCPConnection extends Node {
 	}
 
 	onError (e) {
-		Log.error("TCPConnection error: " + e, 1);
+		Log.error("WSConnection error: " + e, 1);
 
 		this.send(this.address.parent, {
 			command: "closeConnection",
@@ -112,14 +111,14 @@ class TCPConnection extends Node {
 		this.pingCounter++;
 
 		if (this.pingCounter == this.pingOptions.threshold) {
-			Log.warning("TCPConnection " + this.id + " closed after " + this.pingOptions.threshold + " failed pings", 1);
+			Log.warning("WSConnection " + this.id + " closed after " + this.pingOptions.threshold + " failed pings", 1);
 
 			this.send(this.address.parent, {
 				command: "closeConnection",
 				id: this.id
 			});
 		} else {
-			this.socket.write(JSON.stringify({
+			this.socket.send(JSON.stringify({
 				sender: [],
 				destination: [],
 				data: {
@@ -130,4 +129,4 @@ class TCPConnection extends Node {
 	}
 }
 
-module.exports = TCPConnection;
+module.exports = WSConnection;
