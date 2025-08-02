@@ -23,10 +23,18 @@ function lookUpBuffers (obj: any, arr: any[]) {
 
 export interface EventData {
 	command: string;
-	error: boolean;
+	error?: boolean;
 	details?: string;
 	data?: any;
 	reqId?: number;
+}
+
+export interface SerializedEvent {
+	sender: string[];
+	destination: string[];
+	data: EventData;
+	trace?: boolean;
+	isResponse?: boolean;
 }
 
 export class Event {
@@ -78,8 +86,8 @@ export class Event {
 	}
 
 	static deserialize (dispatcher: Dispatcher, str: string): Event {
-		let ds = JSON.parse(str);
+		let ds = JSON.parse(str) as SerializedEvent;
 
-		return new Event(dispatcher, ds.sender, ds.destination, ds.data, ds.isResponse || false, ds.trace || false);
+		return new Event(dispatcher, new Address(ds.sender), new Address(ds.destination), ds.data, ds.isResponse || false, ds.trace || false);
 	}
 }

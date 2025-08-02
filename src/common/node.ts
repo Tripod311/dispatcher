@@ -1,6 +1,6 @@
 import Address from "./address.js"
 import type { EventData } from "./event.js"
-import { Event} from "./event.js"
+import { Event } from "./event.js"
 import type Dispatcher from "./dispatcher.js"
 import Log from "../utils/log.js"
 
@@ -12,9 +12,9 @@ interface ChainedEvent {
 export type NodeListener = (ev: Event) => void;
 
 export class Node {
-	private dispatcher: Dispatcher | null;
-	private _address: Address | null;
-	private subNodes: Record<string, Node> = {};
+	protected dispatcher: Dispatcher | null;
+	protected _address: Address | null;
+	protected subNodes: Record<string, Node> = {};
 	private requestCounter: number = 0;
 	private chained: Record<number, ChainedEvent> = {};
 	private listeners: Record<string, NodeListener> = {};
