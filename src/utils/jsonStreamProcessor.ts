@@ -1,29 +1,30 @@
-const EventEmitter = require("events");
-const Log = require("./log.js");
+import { EventEmitter } from "events"
+import { Socket } from "net"
+import Log from "./log.js"
 
-class JSONStreamProcessor extends EventEmitter {
-	constructor (socket) {
+export default class JSONStreamProcessor extends EventEmitter {
+	private socket: Socket;
+	private remainder: string = "";
+	private insideString: boolean = false;
+	private bracketCounter: number = 0;
+	private lookUpPointer: number = 0;
+	private dataHandle: (chunk: Buffer) => void;
+	
+	constructor (socket: Socket) {
 		super();
 
 		this.socket = socket;
-
 		this.dataHandle = this.onData.bind(this);
-
 		this.socket.on("data", this.dataHandle);
-
-		this.remainder = "";
-		this.insideString = false;
-		this.bracketCounter = 0;
-		this.lookUpPointer = 0;
 	}
 
 	destructor () {
 		this.socket.off("data", this.dataHandle);
 
-		super.removeAllListeners.call(this);
+		this.removeAllListeners();
 	}
 
-	onData (chunk) {
+	onData (chunk: Buffer) {
 		this.remainder += chunk.toString();
 
 		this.lookUp();
@@ -54,7 +55,6 @@ class JSONStreamProcessor extends EventEmitter {
 						this.lookUpPointer++;
 
 						if (this.bracketCounter === 0) {
-							//emit message
 							const messageText = this.remainder.slice(0, this.lookUpPointer);
 							this.remainder = this.remainder.slice(this.lookUpPointer);
 							this.lookUpPointer = 0;
@@ -78,7 +78,7 @@ class JSONStreamProcessor extends EventEmitter {
 		}
 	}
 
-	checkQuote () {
+	checkQuote (): boolean {
 		if (this.remainder[this.lookUpPointer] === '"') {
 			let slashCounter = 0;
 			let index = this.lookUpPointer-1;
@@ -94,5 +94,3 @@ class JSONStreamProcessor extends EventEmitter {
 		}
 	}
 }
-
-module.exports = JSONStreamProcessor;

@@ -7,9 +7,10 @@ const Dispatcher = require("./common/dispatcher.js");
 const NetworkConnector = require("./node/networkConnector.js");
 const ThreadConnector = require("./node/threadConnector.js");
 const ThreadNode = require("./node/threadNode.js");
-const WebsocketConnector = require("./node/websocketConnector.js");
 const TCPEndpoint = require("./node/tcpEndpoint.js");
-const WebsocketEndpoint = require("./node/websocketEndpoint.js");
+const WSEndpoint = require("./node/websocketEndpoint.js");
+
+const WSConnector = require("./browser/wsConnector.js");
 
 module.exports = {
 	Log,
@@ -21,7 +22,7 @@ module.exports = {
 	NetworkConnector,
 	ThreadConnector,
 	ThreadNode,
-	WebsocketConnector,
 	TCPEndpoint,
-	WebsocketEndpoint
+	WSEndpoint,
+	WSConnector
 };

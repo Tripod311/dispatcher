@@ -7,9 +7,19 @@
   ],
   "license": "ISC",
   "author": "Tripod ind.tripod@gmail.com",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.1.0",
+    "jest": "^30.0.5",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }

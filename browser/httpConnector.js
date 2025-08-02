@@ -3,7 +3,7 @@ const Address = require("../common/address.js");
 const Event = require("../common/event.js");
 const Log = require("../utils/log.js");
 
-class WSConnector extends Node {
+class HTTPConnector extends Node {
 	constructor (options) {
 		super ();
 
@@ -45,13 +45,13 @@ class WSConnector extends Node {
 	}
 
 	onConnected () {
-		Log.info("WSConnector connected successfully", 1);
+		Log.info("HTTPConnector connected successfully", 1);
 		this.pingInterval = setInterval(this.pingSocket, this.options.interval);
 	}
 
 	onMessage (ev) {
 		if (!ev.data || !ev.data.command) {
-			Log.error(`WSConnector: Invalid event\n${JSON.stringify(ev)}`, 1);
+			Log.error(`HTTPConnector: Invalid event\n${JSON.stringify(ev)}`, 1);
 			return;
 		}
 
@@ -71,11 +71,11 @@ class WSConnector extends Node {
 			case "register":
 				this.registered = true;
 				this.remoteAddress = new Address(ev.data.address);
-				Log.success("WSConnector registered with remote address " + this.remoteAddress.print(), 1);
+				Log.success("HTTPConnector registered with remote address " + this.remoteAddress.print(), 1);
 				break;
 			default:
 				if (!this.registered) {
-					Log.warning("WSConnector receiving data before registration\n" + JSON.stringify(ev.data), 1);
+					Log.warning("HTTPConnector receiving data before registration\n" + JSON.stringify(ev.data), 1);
 				} else {
 					let rev = new Event(this.dispatcher, new Address(ev.sender), new Address(ev.destination), ev.data, ev.isResponse, ev.trace);
 					rev.dispatch();
@@ -85,7 +85,7 @@ class WSConnector extends Node {
 	}
 
 	onError (e) {
-		Log.error("WSConnector socket error: " + e, 1);
+		Log.error("HTTPConnector socket error: " + e, 1);
 		this.socket.end();
 		this.socket.destroy();
 	}
@@ -99,7 +99,7 @@ class WSConnector extends Node {
 		this.pingCounter++;
 
 		if (this.pingCounter == this.options.threshold) {
-			Log.warning("WSConnector socket closed after " + this.options.threshold + " failed pings", 1);
+			Log.warning("HTTPConnector socket closed after " + this.options.threshold + " failed pings", 1);
 
 			this.socket.close();
 		} else {
@@ -114,4 +114,4 @@ class WSConnector extends Node {
 	}
 }
 
-module.exports = WSConnector;
+module.exports = HTTPConnector;

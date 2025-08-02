@@ -1,10 +1,13 @@
-function lookUpBuffers (obj, arr) {
+import Address from "./address.js"
+import type Dispatcher from "./dispatcher.js"
+
+function lookUpBuffers (obj: any, arr: any[]) {
 	if (Array.isArray(obj)) {
 		for (let i=0; i<obj.length; i++) {
 			if (obj[i] instanceof ArrayBuffer) {
 				arr.push(obj[i]);
 			} else if (Array.isArray(obj[i]) || (obj[i] !== null && typeof obj[i] === 'object')) {
-				lookUpBuffers(obj[i],arr);
+				lookUpBuffers(obj[i], arr);
 			}
 		}
 	} else {
@@ -12,14 +15,29 @@ function lookUpBuffers (obj, arr) {
 			if (obj[i] instanceof ArrayBuffer) {
 				arr.push(obj[i]);
 			} else if (Array.isArray(obj[i]) || (obj[i] !== null && typeof obj[i] === 'object')) {
-				lookUpBuffers(obj[i],arr);
+				lookUpBuffers(obj[i], arr);
 			}
 		}
 	}
 }
 
-class Event {
-	constructor (dispatcher, sender, destination, data, isResponse, trace) {
+export interface EventData {
+	command: string;
+	error: boolean;
+	details?: string;
+	data?: any;
+	reqId?: number;
+}
+
+export class Event {
+	private dispatcher: Dispatcher;
+	public sender: Address;
+	public destination: Address;
+	public data: EventData;
+	public isResponse: boolean = false;
+	public trace: boolean = false;
+
+	constructor (dispatcher: Dispatcher, sender: Address, destination: Address, data: EventData, isResponse: boolean = false, trace: boolean = false) {
 		if (!data.command) {
 			throw new Error("Command must be present in all events");
 		}
@@ -27,11 +45,11 @@ class Event {
 		this.sender = sender;
 		this.destination = destination;
 		this.data = data;
-		this.isResponse = isResponse || false;
-		this.trace = trace || false;
+		this.isResponse = isResponse;
+		this.trace = trace;
 	}
 
-	serialize () {
+	serialize (): string {
 		return JSON.stringify({
 			sender: this.sender.data,
 			destination: this.destination.data,
@@ -41,29 +59,27 @@ class Event {
 		});
 	}
 
-	dispatch (hop) {
+	dispatch (hop: number = 0) {
 		this.dispatcher.dispatch(this.destination, this, hop);
 	}
 
-	response (obj) {
+	response (obj: EventData) {
 		if (this.data.reqId !== undefined) obj.reqId = this.data.reqId;
 		let ev = new Event(this.dispatcher, this.destination, this.sender, obj, true, false);
 		ev.dispatch();
 	}
 
-	captureTransfers () {
-		let result = [];
+	captureTransfers (): any[] {
+		let result: any[] = [];
 
 		lookUpBuffers(this.data, result);
 
 		return result;
 	}
 
-	static deserialize (dispatcher, str) {
+	static deserialize (dispatcher: Dispatcher, str: string): Event {
 		let ds = JSON.parse(str);
 
 		return new Event(dispatcher, ds.sender, ds.destination, ds.data, ds.isResponse || false, ds.trace || false);
 	}
 }
-
-module.exports = Event;

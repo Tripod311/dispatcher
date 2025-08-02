@@ -6,9 +6,9 @@ const esc = {
     reset: "\x1b[0m"
 }
 
-var logLevel = 4;
+let logLevel: number = 4;
 
-function _timeStr () {
+function _timeStr (): string {
     let date = new Date();
     let day = date.getDate().toString();
     let month = (date.getMonth()+1).toString();
@@ -26,43 +26,43 @@ function _timeStr () {
         millis;
 }
 
-function _log (cl, msg) {
+function _log (cl: string, msg: string) {
     console.log(cl + "[" + _timeStr() + "] " + msg + esc.reset);
 }
 
-function error (msg, level) {
+function error (msg: string, level: number) {
     if (logLevel >= level) {
         _log(esc.error, msg);
     }
 }
 
-function info (msg, level) {
+function info (msg: string, level: number) {
     if (logLevel >= level) {
         _log(esc.info, msg);
     }
 }
 
-function success (msg,level) {
+function success (msg: string, level: number) {
     if (logLevel >= level) {
         _log(esc.success, msg);
     }
 }
 
-function warning (msg, level) {
+function warning (msg: string, level: number) {
     if (logLevel >= level) {
         _log(esc.warning, msg);
     }
 }
 
-function setLogLevel (level) {
+function setLogLevel (level: number) {
     logLevel = level;
 }
 
-function getLogLevel () {
+function getLogLevel (): number {
     return logLevel;
 }
 
-module.exports = {
+export default {
     error: error,
     info: info,
     success: success,

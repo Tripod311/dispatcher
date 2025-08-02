@@ -73,8 +73,8 @@ class TCPConnector extends Node {
 				break;
 			case "register":
 				this.registered = true;
-				this.address = new Address(ev.data.address);
-				Log.success("TCPconnector registered with remote address " + this.address.print(), 1);
+				this.remoteAddress = new Address(ev.data.address);
+				Log.success("TCPconnector registered with remote address " + this.remoteAddress.print(), 1);
 				break;
 			default:
 				if (!this.registered) {
