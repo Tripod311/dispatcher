@@ -54,6 +54,7 @@ export class TCPConnector extends Node {
 	}
 
 	detach () {
+		clearInterval(this.pingInterval);
 		this.socket.destroy();
 
 		super.detach.call(this);
@@ -61,7 +62,7 @@ export class TCPConnector extends Node {
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
 		if (this.address!.isParentOf(address)) {
-			super.dispatch.call(this, address, hopIndex, event);
+			super.dispatch.call(this, address, this.address!.data.length, event);
 		} else {
 			this.socket.write(JSON.stringify({
 				sender: event.sender.data,
@@ -117,6 +118,7 @@ export class TCPConnector extends Node {
 	}
 
 	onClose () {
+		clearInterval(this.pingInterval);
 		this.socket.end();
 	}
 
@@ -141,5 +143,9 @@ export class TCPConnector extends Node {
 		}
 
 		this.pingCounter++;
+	}
+
+	get isRegistered () {
+		return this.registered;
 	}
 }

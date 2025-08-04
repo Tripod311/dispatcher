@@ -63,17 +63,13 @@ export default class TCPConnection extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		if (this.address!.isParentOf(address)) {
-			super.dispatch.call(this, address, hopIndex, event);
-		} else {
-			this.socket.write(JSON.stringify({
-				sender: event.sender.data,
-				destination: event.destination.data,
-				data: event.data,
-				isResponse: event.isResponse,
-				trace: event.trace
-			}));
-		}
+		this.socket.write(JSON.stringify({
+			sender: event.sender.data,
+			destination: event.destination.data,
+			data: event.data,
+			isResponse: event.isResponse,
+			trace: event.trace
+		}));
 	}
 
 	handleMessage (message: any) {

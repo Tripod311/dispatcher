@@ -40,7 +40,7 @@ export default class Address {
 	}
 
 	get data (): string[] {
-		return this._data
+		return this._data.slice();
 	}
 
 	set data (data: string[]) {
