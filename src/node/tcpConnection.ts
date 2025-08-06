@@ -39,7 +39,9 @@ export default class TCPConnection extends Node {
 		this.socket.on("error", this.errorHandle);
 		this.socket.on("close", this.closeHandle);
 
-		this.pingInterval = setInterval(this.pingSocket.bind(this), this.pingOptions.interval);
+		if (this.pingOptions.interval > 0) {
+			this.pingInterval = setInterval(this.pingSocket.bind(this), this.pingOptions.interval);
+		}
 
 		this.socket.write(JSON.stringify({
 			sender: [],

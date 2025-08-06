@@ -55,6 +55,7 @@ export class TCPConnector extends Node {
 
 	detach () {
 		clearInterval(this.pingInterval);
+		this.pingCounter = 0;
 		this.socket.destroy();
 
 		super.detach.call(this);
@@ -76,7 +77,9 @@ export class TCPConnector extends Node {
 
 	onOpen () {
 		Log.info("TCPConnector connected successfully", 1);
-		this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
+		if (this.options.interval > 0) {
+			this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
+		}
 	}
 
 	onMessage (msg: any) {
@@ -119,6 +122,7 @@ export class TCPConnector extends Node {
 
 	onClose () {
 		clearInterval(this.pingInterval);
+		this.pingCounter = 0;
 		this.socket.end();
 	}
 
