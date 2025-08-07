@@ -32,7 +32,7 @@ export default class TCPConnection extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.processor = new JSONStreamProcessor(this.socket);
 		this.processor.on("message", this.messageHandle);
@@ -61,7 +61,7 @@ export default class TCPConnection extends Node {
 		this.socket.end();
 		this.socket.destroy();
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {

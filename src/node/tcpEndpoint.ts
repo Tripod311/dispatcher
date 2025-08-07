@@ -29,7 +29,7 @@ export class TCPEndpoint extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.server.on("connection", this.connectionHandle);
 		this.server.on("error", this.errorHandle);

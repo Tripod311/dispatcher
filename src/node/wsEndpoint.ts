@@ -31,7 +31,7 @@ export class WSEndpoint extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.server.on("connection", this.connectionHandle);
 		this.server.on("error", this.errorHandle);
@@ -41,7 +41,7 @@ export class WSEndpoint extends Node {
 		this.server.off("connection", this.connectionHandle);
 		this.server.off("error", this.errorHandle);
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	onConnection (socket: WebSocket) {

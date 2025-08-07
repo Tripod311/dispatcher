@@ -26,7 +26,7 @@ export default class WSConnector extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.socket.addEventListener("open", () => {
 			this.socket.addEventListener("message", this.messageHandle);
@@ -49,12 +49,12 @@ export default class WSConnector extends Node {
 		this.socket.removeEventListener("error", this.errorHandle);
 		this.socket.removeEventListener("close", this.closeHandle);
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
 		if (this.address!.isParentOf(address)) {
-			super.dispatch.call(this, address, this.address!.data.length, event);
+			super.dispatch(address, this.address!.data.length, event);
 		} else {
 			this.socket.send(JSON.stringify({
 				sender: event.sender.data,

@@ -39,7 +39,7 @@ export class TCPConnector extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		try {
 			this.socket = Net.createConnection(this.options.port, this.options.host);
@@ -58,12 +58,12 @@ export class TCPConnector extends Node {
 		this.pingCounter = 0;
 		this.socket.destroy();
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
 		if (this.address!.isParentOf(address)) {
-			super.dispatch.call(this, address, this.address!.data.length, event);
+			super.dispatch(address, this.address!.data.length, event);
 		} else {
 			this.socket.write(JSON.stringify({
 				sender: event.sender.data,

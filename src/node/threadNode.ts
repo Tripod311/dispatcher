@@ -34,7 +34,7 @@ export class ThreadNode extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.worker = new Worker(this.script, {
 			workerData: { logLevel: this.options.logLevel }
@@ -76,7 +76,7 @@ export class ThreadNode extends Node {
 			clearInterval(this.pingInterval);
 		}
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {

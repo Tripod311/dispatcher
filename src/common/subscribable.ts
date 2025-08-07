@@ -8,7 +8,7 @@ export default class Subscribable extends Node {
 	private subscribers: Address[] = [];
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.setListener("subscribe", this.subscribe.bind(this));
 		this.setListener("unsubscribe", this.unsubscribe.bind(this));

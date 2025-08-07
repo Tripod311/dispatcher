@@ -28,7 +28,7 @@ export default class WSConnection extends Node {
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
-		super.attach.call(this, dispatcher, address);
+		super.attach(dispatcher, address);
 
 		this.socket.on("message", this.messageHandle);
 		this.socket.on("error", this.errorHandle);
@@ -54,7 +54,7 @@ export default class WSConnection extends Node {
 		clearInterval(this.pingInterval);
 		this.socket.close();
 
-		super.detach.call(this);
+		super.detach();
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
