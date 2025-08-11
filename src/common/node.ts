@@ -108,7 +108,7 @@ export class Node {
 	}
 
 	handle (event: Event) {
-		const reqId = event.data.reqId;
+		const reqId = event.reqId;
 		const chainEntry = reqId !== undefined ? this.chained[reqId] : undefined;
 
 		if (reqId !== undefined && chainEntry !== undefined && chainEntry.destination.equals(event.sender)) {
@@ -150,9 +150,10 @@ export class Node {
 			destination: new Address(destination)
 		}
 
-		data.reqId = id;
+		const ev = new Event(this.dispatcher, new Address(this.address), new Address(destination), data, false, trace);
+		ev.reqId = id;
 
-		this.send(destination, data, trace);
+		ev.dispatch();
 
 		return id;
 	}

@@ -7,7 +7,6 @@ import { Event } from "../common/event.js"
 import Log from "../utils/log.js"
 
 export default class WSConnection extends Node {
-	private id: string;
 	private socket: WebSocket;
 	private options: { interval: number; threshold: number; };
 	private messageHandle: (msg: any) => void;
@@ -16,9 +15,8 @@ export default class WSConnection extends Node {
 	private pingInterval: ReturnType<typeof setInterval> | undefined;
 	private pingCounter: number = 0;
 
-	constructor (id: string, socket: WebSocket, options: { interval: number; threshold: number; }) {
+	constructor (socket: WebSocket, options: { interval: number; threshold: number; }) {
 		super ();
-		this.id = id;
 		this.socket = socket;
 		this.options = options;
 
@@ -52,6 +50,11 @@ export default class WSConnection extends Node {
 
 	detach () {
 		clearInterval(this.pingInterval);
+
+		this.socket.off("message", this.messageHandle);
+		this.socket.off("error", this.errorHandle);
+		this.socket.off("close", this.closeHandle);
+
 		this.socket.close();
 
 		super.detach();
@@ -63,7 +66,8 @@ export default class WSConnection extends Node {
 			destination: event.destination.data,
 			data: event.data,
 			isResponse: event.isResponse,
-			trace: event.trace
+			trace: event.trace,
+			reqId: event.reqId
 		}));
 	}
 
@@ -98,6 +102,7 @@ export default class WSConnection extends Node {
 		}
 
 		const rev = new Event(this.dispatcher as Dispatcher, new Address(ev.sender), new Address(ev.destination), ev.data, ev.isResponse, ev.trace);
+		rev.reqId = ev.reqId;
 		rev.dispatch();
 	}
 
@@ -111,10 +116,7 @@ export default class WSConnection extends Node {
 			Log.info("WSConnection " + this.id + " closed", 1);
 
 			this.send(this.address!.parent, {
-				command: "closeConnection",
-				data: {
-					id: this.id
-				}
+				command: "closeConnection"
 			});
 		}
 	}
@@ -125,10 +127,7 @@ export default class WSConnection extends Node {
 
 			if (this.address !== null) {
 				this.send(this.address.parent, {
-					command: "closeConnection",
-					data: {
-						id: this.id
-					}
+					command: "closeConnection"
 				});
 			}
 		} else {

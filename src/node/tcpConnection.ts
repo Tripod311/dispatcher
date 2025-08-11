@@ -9,7 +9,6 @@ import JSONStreamProcessor from "../utils/jsonStreamProcessor.js"
 import Log from "../utils/log.js"
 
 export default class TCPConnection extends Node {
-	private id: string;
 	private socket: Socket;
 	private pingOptions: PingOptions;
 	private messageHandle: (msg: any) => void;
@@ -19,10 +18,9 @@ export default class TCPConnection extends Node {
 	private pingCounter: number = 0;
 	private processor!: JSONStreamProcessor;
 
-	constructor (id: string, socket: Socket, pingOptions: PingOptions) {
+	constructor (socket: Socket, pingOptions: PingOptions) {
 		super();
 
-		this.id = id;
 		this.socket = socket;
 		this.pingOptions = pingOptions;
 
@@ -58,6 +56,8 @@ export default class TCPConnection extends Node {
 	detach () {
 		this.processor.destructor();
 		clearInterval(this.pingInterval);
+		this.socket.on("error", this.errorHandle);
+		this.socket.on("close", this.closeHandle);
 		this.socket.end();
 		this.socket.destroy();
 
@@ -70,7 +70,8 @@ export default class TCPConnection extends Node {
 			destination: event.destination.data,
 			data: event.data,
 			isResponse: event.isResponse,
-			trace: event.trace
+			trace: event.trace,
+			reqId: event.reqId
 		}));
 	}
 
@@ -99,6 +100,7 @@ export default class TCPConnection extends Node {
 			}
 
 			let ev = new Event(this.dispatcher as Dispatcher, new Address(event.sender), new Address(event.destination), event.data, event.isResponse, event.trace);
+			ev.reqId = event.reqId;
 			ev.dispatch();
 		} catch (e) {
 			Log.error("Invalid message format: " + e + "\n" + message.toString(), 1);
@@ -108,25 +110,13 @@ export default class TCPConnection extends Node {
 	handleError (err: Error) {
 		Log.error("TCPConnection error: " + err.toString(), 1);
 
-		if (this.address !== null) {
-			this.send(this.address.parent, {
-				command: "closeConnection",
-				data: {
-					id: this.id
-				}
-			});
-		}
+		this.handleClose();
 	}
 
 	handleClose () {
-		Log.info("TCPConnection " + this.id + " closed", 1);
-
 		if (this.address !== null) {
 			this.send(this.address.parent, {
-				command: "closeConnection",
-				data: {
-					id: this.id
-				}
+				command: "closeConnection"
 			});
 		}
 	}
@@ -137,10 +127,7 @@ export default class TCPConnection extends Node {
 
 			if (this.address !== null) {
 				this.send(this.address.parent, {
-					command: "closeConnection",
-					data: {
-						id: this.id
-					}
+					command: "closeConnection"
 				});
 			}
 		} else {

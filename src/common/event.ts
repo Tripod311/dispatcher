@@ -35,6 +35,7 @@ export interface SerializedEvent {
 	data: EventData;
 	trace?: boolean;
 	isResponse?: boolean;
+	reqId?: number;
 }
 
 export class Event {
@@ -44,6 +45,7 @@ export class Event {
 	public data: EventData;
 	public isResponse: boolean = false;
 	public trace: boolean = false;
+	public reqId: number | undefined;
 
 	constructor (dispatcher: Dispatcher, sender: Address, destination: Address, data: EventData, isResponse: boolean = false, trace: boolean = false) {
 		if (!data.command) {
@@ -72,8 +74,8 @@ export class Event {
 	}
 
 	response (obj: EventData) {
-		if (this.data.reqId !== undefined) obj.reqId = this.data.reqId;
 		let ev = new Event(this.dispatcher, this.destination, this.sender, obj, true, false);
+		if (this.reqId !== undefined) ev.reqId = this.reqId;
 		ev.dispatch();
 	}
 

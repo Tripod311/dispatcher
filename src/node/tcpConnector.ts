@@ -70,7 +70,8 @@ export class TCPConnector extends Node {
 				destination: event.destination.data,
 				data: event.data,
 				isResponse: event.isResponse,
-				trace: event.trace
+				trace: event.trace,
+				reqId: event.reqId
 			}));
 		}
 	}
@@ -114,6 +115,7 @@ export class TCPConnector extends Node {
 					Log.warning("TCPConnector receiving data before registration\n" + JSON.stringify(event.data), 1);
 				} else {
 					let rev = new Event(this.dispatcher as Dispatcher, new Address(event.sender), new Address(event.destination), event.data, event.isResponse, event.trace);
+					rev.reqId = event.reqId;
 					rev.dispatch();
 				}
 				break;

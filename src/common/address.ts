@@ -50,4 +50,8 @@ export default class Address {
 	get parent (): Address {
 		return new Address(this._data.slice(0, this._data.length-1));
 	}
+
+	get length (): number {
+		return this._data.length;
+	}
 }

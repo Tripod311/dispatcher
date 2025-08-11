@@ -60,6 +60,7 @@ export default class ThreadConnector extends Node {
 			default:
 				if (this.registered) {
 					const rev = new Event(this.dispatcher as Dispatcher, new Address(ev.sender), new Address(ev.destination), ev.data, ev.isResponse, ev.trace);
+					rev.reqId = ev.reqId;
 					rev.dispatch();
 				} else {
 					Log.warning("ThreadConnector received event before registration", 1);
@@ -77,7 +78,8 @@ export default class ThreadConnector extends Node {
 				destination: event.destination.data,
 				data: event.data,
 				isResponse: event.isResponse,
-				trace: event.trace
+				trace: event.trace,
+				reqId: event.reqId
 			});
 		}
 	}

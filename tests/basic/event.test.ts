@@ -58,7 +58,8 @@ describe('Event', () => {
 	});
 
 	it('Correct response event', () => {
-		const original = new Event(dispatcher, sender, destination, { command: 'do', reqId: 42 });
+		const original = new Event(dispatcher, sender, destination, { command: 'do' });
+		original.reqId = 42;
 		const responseData = { command: 'done' };
 
 		const dispatchSpy = vi.spyOn(original, 'dispatch');
@@ -73,7 +74,7 @@ describe('Event', () => {
 		expect(ev.sender.equals(destination)).toBe(true);
 		expect(ev.destination.equals(sender)).toBe(true);
 		expect(ev.data.command).toBe('done');
-		expect(ev.data.reqId).toBe(42);
+		expect(ev.reqId).toBe(42);
 
 		dispatchSpy.mockRestore();
 	});

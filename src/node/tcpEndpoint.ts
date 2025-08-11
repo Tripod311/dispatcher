@@ -39,7 +39,7 @@ export class TCPEndpoint extends Node {
 
 	handleConnection (socket: Socket) {
 		let id = (this.counter++).toString();
-		this.addChild(id, new TCPConnection(id, socket, this.pingOptions));
+		this.addChild(id, new TCPConnection(socket, this.pingOptions));
 	}
 
 	handleError (err: Error) {
@@ -47,7 +47,7 @@ export class TCPEndpoint extends Node {
 	}
 
 	closeConnection (event: Event) {
-		const { id } = event.data.data as { id: string };
+		const id = event.sender.data[this.address!.length];
 		this.delChild(id);
 	}
 }

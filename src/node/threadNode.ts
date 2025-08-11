@@ -86,7 +86,8 @@ export class ThreadNode extends Node {
 				destination: event.destination.data,
 				data: event.data,
 				trace: event.trace,
-				isResponse: event.isResponse
+				isResponse: event.isResponse,
+				reqId: event.reqId
 			});
 		} else {
 			Log.warning("ThreadNode received event before connected", 1);
@@ -123,6 +124,7 @@ export class ThreadNode extends Node {
 				break;
 			default:
 				const rev = new Event(this.dispatcher as Dispatcher, new Address(ev.sender), new Address(ev.destination), ev.data, ev.isResponse, ev.trace);
+				rev.reqId = ev.reqId;
 				rev.dispatch();
 				break;
 		}

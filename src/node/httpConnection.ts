@@ -1,4 +1,4 @@
-import type { IncomingMessage } from 'http';
+import type { ServerResponse } from 'http';
 import Address from "../common/address.js"
 import type { SerializedEvent } from "../common/event.js"
 import { Event } from "../common/event.js"
@@ -6,7 +6,7 @@ import { Node } from "../common/node.js"
 import type Dispatcher from "../common/dispatcher.js"
 
 export default class HTTPConnection extends Node {
-	public sessionVariables: Record<string, any> = {};
+	private variables: Record<string, any> = {};
 	private expireTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 	private sessionLifetime: number;
 
@@ -28,10 +28,18 @@ export default class HTTPConnection extends Node {
 		super.detach();
 	}
 
+	dispatch (address: Address, hopIndex: number, event: Event) {
+		
+	}
+
 	expire () {
 		this.send(this.address!.parent, {
 			command: "sessionExpired"
 		});
+	}
+
+	process (event: SerializedEvent, response: ServerResponse) {
+
 	}
 
 	public static randomId (): string {

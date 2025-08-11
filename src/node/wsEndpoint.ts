@@ -46,7 +46,7 @@ export class WSEndpoint extends Node {
 
 	onConnection (socket: WebSocket) {
 		let id = this.counter++;
-		this.addChild(id.toString(), new WSConnection(id.toString(), socket, this.options));
+		this.addChild(id.toString(), new WSConnection(socket, this.options));
 	}
 
 	onError (err: any) {
@@ -54,6 +54,7 @@ export class WSEndpoint extends Node {
 	}
 
 	closeConnection (event: Event) {
-		this.delChild(event.data.data.id as string);
+		const id = event.sender.data[this.address!.length];
+		this.delChild(id);
 	}
 }

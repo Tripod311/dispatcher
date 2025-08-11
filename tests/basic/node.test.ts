@@ -87,7 +87,7 @@ describe('Node', () => {
 
 		expect(typeof id).toBe('number');
 		const ev = (mockDispatcher.dispatch as any).mock.calls[0][1] as Event;
-		expect(ev.data.reqId).toBe(id);
+		expect(ev.reqId).toBe(id);
 	});
 
 	it('clearChain deletes chain by id', () => {
@@ -136,11 +136,12 @@ describe('Node', () => {
 		const id = node.chain(['sender'], { command: 'ping' }, cb);
 
 		const ev = {
-			data: { command: 'ping', reqId: id },
+			data: { command: 'ping' },
 			sender: new Address(['sender']),
 			destination: rootAddress,
 			isResponse: true,
-			trace: false
+			trace: false,
+			reqId: id
 		} as unknown as Event;
 
 		node.handle(ev);
