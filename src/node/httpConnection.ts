@@ -9,6 +9,7 @@ export default class HTTPConnection extends Node {
 	private variables: Record<string, any> = {};
 	private expireTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 	private sessionLifetime: number;
+	private queue: Event[] = [];
 
 	constructor (sessionLifetime: number) {
 		super();
@@ -29,7 +30,7 @@ export default class HTTPConnection extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		
+		this.queue.push(event);
 	}
 
 	expire () {
@@ -38,8 +39,27 @@ export default class HTTPConnection extends Node {
 		});
 	}
 
-	process (event: SerializedEvent, response: ServerResponse) {
+	process (event: SerializedEvent) {
+		const ev = new Event(this.dispatcher as Dispatcher, new Address(this.address as Address), new Address(event.destination), event.data, event.isResponse, event.trace);
 
+		ev.dispatch();
+	}
+
+	poll (response: ServerResponse) {
+		response.writeHead(200, {
+			"Content-Type": "application/json"
+		});
+		response.write(JSON.stringify({
+			sender: [],
+			destination: [],
+			data: {
+				command: "pollResponse",
+				data: {
+					events: JSON.stringify(this.queue.map(e => e.serialize()))
+				}
+			}
+		}));
+		this.queue = [];
 	}
 
 	public static randomId (): string {

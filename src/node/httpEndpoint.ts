@@ -54,49 +54,96 @@ export default class HTTPEndpoint extends Node {
 
 			const command = event.data.command;
 
-			if (command === "register") {
-				const id = HTTPConnection.randomId();
-
-				const connectionAddress = this.address.data;
-				connectionAddress.push(id);
-
-				this.addChild(id, new HTTPConnection(this.sessionLifetime));
-
-				response.writeHead(200, {
-					'Content-Type': "application/json"
+			if (!command) {
+				response.writeHead(403, {
+					"Content-Type": "application/json"
 				});
 				response.write(JSON.stringify({
 					sender: [],
 					destination: [],
 					data: {
-						command: "registerResponse",
+						command: "error",
 						data: {
-							address: connectionAddress,
-							sessionLifetime: this.sessionLifetime
+							details: "Event sent without command"
 						}
 					}
 				}));
-				response.end();
-			} else {
-				const connectionId = event.data.sender[this.address.length];
+				return;
+			}
 
-				if (this.subNodes[connectionId] !== undefined) {
-					this.subNodes[connectionId].process(event, response);
-				} else {
-					response.writeHead(403, {
+			let connectionId;
+
+			switch (command) {
+				case "register":
+					connectionId = HTTPConnection.randomId();
+
+					const connectionAddress = this.address!.data;
+					connectionAddress.push(connectionId);
+
+					this.addChild(connectionId, new HTTPConnection(this.sessionExpireTimeout));
+
+					response.writeHead(200, {
 						'Content-Type': "application/json"
 					});
 					response.write(JSON.stringify({
 						sender: [],
 						destination: [],
 						data: {
-							command: "error",
+							command: "registerResponse",
 							data: {
-								details: "Session expired"
+								address: connectionAddress,
+								sessionExpireTimeout: this.sessionExpireTimeout
 							}
 						}
 					}));
-				}
+					response.end();
+					break;
+				case "poll":
+					connectionId = event.sender[this.address!.length];
+
+					if (this.subNodes[connectionId] !== undefined) {
+						(this.subNodes[connectionId] as HTTPConnection).poll(response);
+					} else {
+						response.writeHead(403, {
+							'Content-Type': "application/json"
+						});
+						response.write(JSON.stringify({
+							sender: [],
+							destination: [],
+							data: {
+								command: "error",
+								data: {
+									details: "Session expired"
+								}
+							}
+						}));
+					}
+					break;
+				default:
+					connectionId = event.sender[this.address!.length];
+
+					if (this.subNodes[connectionId] !== undefined) {
+						(this.subNodes[connectionId] as HTTPConnection).process(event);
+						response.writeHead(200, {
+							"Content-Type": "application/json"
+						});
+						response.write(JSON.stringify({error: false}));
+					} else {
+						response.writeHead(403, {
+							'Content-Type': "application/json"
+						});
+						response.write(JSON.stringify({
+							sender: [],
+							destination: [],
+							data: {
+								command: "error",
+								data: {
+									details: "Session expired"
+								}
+							}
+						}));
+					}
+					break;
 			}
 		} catch (err: any) {
 			const details = "HTTPEndpoint error on event processing: " + err.toString();

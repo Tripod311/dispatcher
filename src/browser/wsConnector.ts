@@ -95,10 +95,14 @@ export default class WSConnector extends Node {
 				this.pingCounter = 0;
 				break;
 			case "register":
-				this.registered = true;
-				const { address } = event.data.data as { address: string[] };
-				this._address = new Address(address);
-				Log.success("WSConnector registered with remote address " + this.address!.toString(), 1);
+				if (this.registered) {
+					Log.warning("WSConnector receved second register event " + this.address!.toString(), 1);
+				} else {
+					this.registered = true;
+					const { address } = event.data.data as { address: string[] };
+					this._address = new Address(address);
+					Log.success("WSConnector registered with remote address " + this.address!.toString(), 1);
+				}
 				break;
 			default:
 				if (!this.registered) {

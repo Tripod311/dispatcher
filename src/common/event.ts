@@ -65,7 +65,8 @@ export class Event {
 			destination: this.destination.data,
 			data: this.data,
 			isResponse: this.isResponse,
-			trace: this.trace
+			trace: this.trace,
+			reqId: this.reqId
 		});
 	}
 

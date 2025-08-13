@@ -123,7 +123,7 @@ export default class TCPConnection extends Node {
 
 	pingSocket () {
 		if (this.pingCounter == this.pingOptions.threshold) {
-			Log.warning("TCPConnection " + this.id + " closed after " + this.pingOptions.threshold + " failed pings", 1);
+			Log.warning("TCPConnection " + this.address!.toString() + " closed after " + this.pingOptions.threshold + " failed pings", 1);
 
 			if (this.address !== null) {
 				this.send(this.address.parent, {

@@ -143,6 +143,8 @@ export class Node {
 	}
 
 	chain (destination: Address | string[], data: EventData, callback: NodeListener, trace: boolean = false) {
+		if (this.dispatcher === null) throw new Error("Calling chain on detached node");
+
 		let id = this.requestCounter++;
 		
 		this.chained[id] = {
@@ -150,7 +152,7 @@ export class Node {
 			destination: new Address(destination)
 		}
 
-		const ev = new Event(this.dispatcher, new Address(this.address), new Address(destination), data, false, trace);
+		const ev = new Event(this.dispatcher as Dispatcher, new Address(this.address as Address), new Address(destination), data, false, trace);
 		ev.reqId = id;
 
 		ev.dispatch();

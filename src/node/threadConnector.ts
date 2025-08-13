@@ -38,10 +38,14 @@ export default class ThreadConnector extends Node {
 
 		switch (ev.data.command) {
 			case "register":
-				this.registered = true;
-				const { address } = ev.data.data as { address: string[] };
-				this.dispatcher = new Dispatcher();
-				this.dispatcher.setRoot(this, new Address(address));
+				if (this.registered) {
+					Log.warning("ThreadConnector received second register event " + this.address!.toString(), 1);
+				} else {
+					this.registered = true;
+					const { address } = ev.data.data as { address: string[] };
+					this.dispatcher = new Dispatcher();
+					this.dispatcher.setRoot(this, new Address(address));
+				}
 				break;
 			case "ping":
 				this.channel!.postMessage({
@@ -70,7 +74,7 @@ export default class ThreadConnector extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		if (this.address!.isParentOf(address)) {
+		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch.call(this, address, this.address!.data.length, event);
 		} else {
 			this.channel!.postMessage({

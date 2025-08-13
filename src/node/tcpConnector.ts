@@ -105,10 +105,14 @@ export class TCPConnector extends Node {
 				this.pingCounter = 0;
 				break;
 			case "register":
-				this.registered = true;
-				const { address } = event.data.data as { address: string[] };
-				this._address = new Address(address);
-				Log.success("TCPconnector registered with remote address " + this.address!.toString(), 1);
+				if (this.registered) {
+					Log.warning("TCPConnector received second register event " + this.address!.toString(), 1);
+				} else {
+					this.registered = true;
+					const { address } = event.data.data as { address: string[] };
+					this._address = new Address(address);
+					Log.success("TCPconnector registered with remote address " + this.address!.toString(), 1);
+				}
 				break;
 			default:
 				if (!this.registered) {

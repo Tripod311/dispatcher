@@ -113,7 +113,7 @@ export default class WSConnection extends Node {
 
 	onClose () {
 		if (this.address !== null) {
-			Log.info("WSConnection " + this.id + " closed", 1);
+			Log.info("WSConnection " + this.address!.toString() + " closed", 1);
 
 			this.send(this.address!.parent, {
 				command: "closeConnection"
@@ -123,7 +123,7 @@ export default class WSConnection extends Node {
 
 	pingSocket () {
 		if (this.pingCounter == this.options.threshold) {
-			Log.warning("TCPConnection " + this.id + " closed after " + this.options.threshold + " failed pings", 1);
+			Log.warning("TCPConnection " + this.address!.toString() + " closed after " + this.options.threshold + " failed pings", 1);
 
 			if (this.address !== null) {
 				this.send(this.address.parent, {
