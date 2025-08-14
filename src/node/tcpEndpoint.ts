@@ -7,19 +7,19 @@ import { Event } from "../common/event.js"
 import TCPConnection from "./tcpConnection.js"
 import Log from "../utils/log.js"
 
-export interface PingOptions {
+export interface TCPEndpointOptions {
 	threshold: number;
 	interval: number;
 }
 
 export class TCPEndpoint extends Node {
 	private server: Server;
-	private pingOptions: PingOptions;
+	private pingOptions: TCPEndpointOptions;
 	private connectionHandle: (socket: Socket) => void;
 	private errorHandle: (err: Error) => void;
 	private counter: number = 0;
 
-	constructor (server: Server, pingOptions: PingOptions = { threshold: 5, interval: 5000 }) {
+	constructor (server: Server, pingOptions: TCPEndpointOptions = { threshold: 5, interval: 5000 }) {
 		super();
 		
 		this.server = server;

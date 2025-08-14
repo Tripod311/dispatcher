@@ -4,13 +4,13 @@ import { Event } from "../common/event.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
 import type { EventData, SerializedEvent } from "../common/event.js"
-import type { PingOptions } from "./tcpEndpoint.js"
+import type { TCPEndpointOptions } from "./tcpEndpoint.js"
 import JSONStreamProcessor from "../utils/jsonStreamProcessor.js"
 import Log from "../utils/log.js"
 
 export default class TCPConnection extends Node {
 	private socket: Socket;
-	private pingOptions: PingOptions;
+	private pingOptions: TCPEndpointOptions;
 	private messageHandle: (msg: any) => void;
 	private errorHandle: (err: Error) => void;
 	private closeHandle: () => void;
@@ -18,7 +18,7 @@ export default class TCPConnection extends Node {
 	private pingCounter: number = 0;
 	private processor!: JSONStreamProcessor;
 
-	constructor (socket: Socket, pingOptions: PingOptions) {
+	constructor (socket: Socket, pingOptions: TCPEndpointOptions) {
 		super();
 
 		this.socket = socket;

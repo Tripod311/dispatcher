@@ -8,10 +8,15 @@
   "license": "ISC",
   "author": "Tripod ind.tripod@gmail.com",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "@types/node": "^24.1.0",
     "ts-jest": "^29.4.0",
