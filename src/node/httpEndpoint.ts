@@ -12,13 +12,16 @@ import Log from "../utils/log.js"
 export default class HTTPEndpoint extends Node {
 	private server: HTTPServer | HTTPSServer;
 	private sessionExpireTimeout: number = 10000;
+	private sessionPollTimeout: number = 30000;
 	private requestHandle: (request: IncomingMessage, response: ServerResponse) => void;
+	private counter: number = 0;
 
-	constructor (server: HTTPServer | HTTPSServer, sessionExpireTimeout?: number) {
+	constructor (server: HTTPServer | HTTPSServer, sessionExpireTimeout?: number, sessionPollTimeout?: number) {
 		super ();
 
 		this.server = server;
 		if (sessionExpireTimeout) this.sessionExpireTimeout = sessionExpireTimeout;
+		if (sessionPollTimeout) this.sessionPollTimeout = sessionPollTimeout;
 
 		this.requestHandle = this.onRequest.bind(this);
 	}
@@ -27,6 +30,8 @@ export default class HTTPEndpoint extends Node {
 		super.attach(dispatcher, address);
 
 		this.server.on("request", this.requestHandle);
+
+		this.setListener("sessionExpired", this.sessionExpired.bind(this));
 	}
 
 	detach () {
@@ -58,7 +63,7 @@ export default class HTTPEndpoint extends Node {
 				response.writeHead(403, {
 					"Content-Type": "application/json"
 				});
-				response.write(JSON.stringify({
+				response.end(JSON.stringify({
 					sender: [],
 					destination: [],
 					data: {
@@ -75,17 +80,17 @@ export default class HTTPEndpoint extends Node {
 
 			switch (command) {
 				case "register":
-					connectionId = HTTPConnection.randomId();
+					connectionId = (this.counter++).toString();
 
 					const connectionAddress = this.address!.data;
 					connectionAddress.push(connectionId);
 
-					this.addChild(connectionId, new HTTPConnection(this.sessionExpireTimeout));
+					this.addChild(connectionId, new HTTPConnection(this.sessionExpireTimeout, this.sessionPollTimeout));
 
 					response.writeHead(200, {
 						'Content-Type': "application/json"
 					});
-					response.write(JSON.stringify({
+					response.end(JSON.stringify({
 						sender: [],
 						destination: [],
 						data: {
@@ -96,18 +101,61 @@ export default class HTTPEndpoint extends Node {
 							}
 						}
 					}));
-					response.end();
 					break;
 				case "poll":
 					connectionId = event.sender[this.address!.length];
 
 					if (this.subNodes[connectionId] !== undefined) {
-						(this.subNodes[connectionId] as HTTPConnection).poll(response);
+						const queue = await (this.subNodes[connectionId] as HTTPConnection).poll();
+						response.writeHead(200, {
+							"Content-Type": "application/json"
+						});
+						response.end(JSON.stringify({
+							sender: [],
+							destination: [],
+							data: {
+								command: "pollResponse",
+								data: {
+									events: queue
+								}
+							}
+						}));
 					} else {
 						response.writeHead(403, {
 							'Content-Type': "application/json"
 						});
-						response.write(JSON.stringify({
+						response.end(JSON.stringify({
+							sender: [],
+							destination: [],
+							data: {
+								command: "error",
+								data: {
+									details: "Session expired"
+								}
+							}
+						}));
+					}
+					break;
+				case "keepAlive":
+					connectionId = event.sender[this.address!.length];
+
+					if (this.subNodes[connectionId] !== undefined) {
+						(this.subNodes[connectionId] as HTTPConnection).keepAlive();
+						response.writeHead(200, {
+							'Content-Type': "application/json"
+						});
+						response.end(JSON.stringify({
+							sender: [],
+							destination: [],
+							data: {
+								command: "keepAliveResponse"
+							}
+						}));
+					} else {
+						response.writeHead(403, {
+							'Content-Type': "application/json"
+						});
+						response.end(JSON.stringify({
 							sender: [],
 							destination: [],
 							data: {
@@ -127,12 +175,12 @@ export default class HTTPEndpoint extends Node {
 						response.writeHead(200, {
 							"Content-Type": "application/json"
 						});
-						response.write(JSON.stringify({error: false}));
+						response.end(JSON.stringify({error: false}));
 					} else {
 						response.writeHead(403, {
 							'Content-Type': "application/json"
 						});
-						response.write(JSON.stringify({
+						response.end(JSON.stringify({
 							sender: [],
 							destination: [],
 							data: {
@@ -152,7 +200,7 @@ export default class HTTPEndpoint extends Node {
 			response.writeHead(403, {
 				'Content-Type': "application/json"
 			});
-			response.write(JSON.stringify({
+			response.end(JSON.stringify({
 				sender: [],
 				destination: [],
 				data: {
@@ -163,6 +211,12 @@ export default class HTTPEndpoint extends Node {
 				}
 			}));
 		}
+	}
+
+	sessionExpired (event: Event) {
+		const sessionId = event.sender.data[this.address!.data.length];
+
+		this.delChild(sessionId);
 	}
 
 	private static readJSONBody (request: IncomingMessage): Promise<SerializedEvent> {

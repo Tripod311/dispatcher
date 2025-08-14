@@ -62,7 +62,7 @@ export class TCPConnector extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		if (this.address!.isParentOf(address)) {
+		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch(address, this.address!.data.length, event);
 		} else {
 			this.socket.write(JSON.stringify({
