@@ -1,16 +1,17 @@
 import Address from "../common/address.js"
 import type { SerializedEvent } from "../common/event.js"
 import { Event } from "../common/event.js"
-import { Node } from "../common/node.js"
+import СonnectionNode from "../common/connectionNode.js"
 import type Dispatcher from "../common/dispatcher.js"
+import Restrictions from "../common/restrictions.js"
 
-export default class HTTPConnection extends Node {
+export default class HTTPConnection extends СonnectionNode {
 	private variables: Record<string, any> = {};
 	private expireTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 	private sessionLifetime: number;
 	private sessionPollTime: number;
 	private queue: Event[] = [];
-	private currentPoll: ((q: SerializedEvent[]) => void) | undefined = undefined;
+	private currentPoll: ((q: Event[]) => void) | undefined = undefined;
 	private currentPollExpireTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
 	constructor (sessionLifetime: number, sessionPollTime: number) {
@@ -61,15 +62,15 @@ export default class HTTPConnection extends Node {
 		ev.dispatch();
 	}
 
-	async poll (): Promise<SerializedEvent[]> {
-		if (this.queue.length > 0) {
-			return this.clearQueue();
-		} else {
-			this.currentPollExpireTimeout = setTimeout(this.clearPoll.bind(this), this.sessionPollTime);
-			return new Promise((resolve) => {
+	poll (): Promise<Event[]> {
+		return new Promise((resolve, reject) => {
+			if (this.queue.length > 0) {
+				resolve(this.clearQueue())
+			} else {
+				this.currentPollExpireTimeout = setTimeout(this.clearPoll.bind(this), this.sessionPollTime);
 				this.currentPoll = resolve;
-			});
-		}
+			}
+		});
 	}
 
 	private clearPoll () {
@@ -77,19 +78,8 @@ export default class HTTPConnection extends Node {
 		this.currentPoll = undefined;
 	}
 
-	private clearQueue (): SerializedEvent[] {
-		let result = [];
-		for (let i=0; i<this.queue.length; i++) {
-			const ev = this.queue[i];
-			result.push({
-				sender: ev.sender.data,
-				destination: ev.destination.data,
-				data: ev.data,
-				isResponse: ev.isResponse,
-				trace: ev.trace,
-				reqId: ev.reqId
-			});
-		}
+	private clearQueue (): Event[] {
+		let result = this.queue;
 		this.queue = [];
 		return result;
 	}

@@ -1,8 +1,13 @@
 import { EventEmitter } from "events"
 import { Socket } from "net"
+import Address from "../common/address.js"
+import type Dispatcher from "../common/dispatcher.js"
+import type { SerializedEvent } from "../common/event.js"
+import { Event } from "../common/event.js"
 import Log from "./log.js"
 
 export default class JSONStreamProcessor extends EventEmitter {
+	private dispatcher: Dispatcher;
 	private socket: Socket;
 	private remainder: string = "";
 	private insideString: boolean = false;
@@ -10,9 +15,10 @@ export default class JSONStreamProcessor extends EventEmitter {
 	private lookUpPointer: number = 0;
 	private dataHandle: (chunk: Buffer) => void;
 	
-	constructor (socket: Socket) {
+	constructor (dispatcher: Dispatcher, socket: Socket) {
 		super();
 
+		this.dispatcher = dispatcher;
 		this.socket = socket;
 		this.dataHandle = this.onData.bind(this);
 		this.socket.on("data", this.dataHandle);
@@ -59,15 +65,15 @@ export default class JSONStreamProcessor extends EventEmitter {
 							this.remainder = this.remainder.slice(this.lookUpPointer);
 							this.lookUpPointer = 0;
 
-							let message;
 							try {
-								message = JSON.parse(messageText);
+								const message = JSON.parse(messageText) as SerializedEvent;
+								const event = new Event(this.dispatcher, new Address(message.sender), new Address(message.destination), message.data, message.isResponse, message.trace);
+								event.reqId = message.reqId;
+								this.emit("message", event);
 							} catch (e) {
 								Log.error(`Invalid json event\n${messageText}`, 0);
 								return;
 							}
-
-							this.emit("message", message);
 						}
 						break;
 					default:

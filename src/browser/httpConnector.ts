@@ -4,6 +4,7 @@ import { Event } from "../common/event.js"
 import type Dispatcher from "../common/dispatcher.js"
 import { Node } from "../common/node.js"
 import Log from "../utils/log.js"
+import { serialize, deserializeSequence } from "../utils/eventUtils.js"
 
 export default class HTTPConnector extends Node {
 	private registered: boolean = false;
@@ -23,19 +24,10 @@ export default class HTTPConnector extends Node {
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		fetch(this.url, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({
-				sender: [],
-				destination: [],
-				data: {
-					command: "register"
-				}
-			})
-		}).then(this.onRegister.bind(this), this.onRegisterError.bind(this));
+		const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+			command: "register"
+		});
+		this.sendEvent(ev).then(this.onRegister.bind(this), this.onRegisterError.bind(this));
 	}
 
 	detach () {
@@ -49,31 +41,25 @@ export default class HTTPConnector extends Node {
 		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch(address, this.address!.data.length, event);
 		} else {
-			fetch(this.url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: event.serialize()
-			}).then((response: Response) => {
-				// do nothing
-			}, (err: any) => {
-				console.error("HTTPConnector dispatch error: " + err.toString());
-			});
+			this.sendEvent(event);
 		}
 	}
 
-	async onRegister (response: Response) {
-		const data = await response.json();
+	async onRegister (events: Event[]) {
+		const event = events[0]
 
-		this.registered = true;
-		this._address = new Address(data.data.data.address as string[]);
-		this.keepAliveTime = (data.data.data.sessionExpireTimeout as number) / 2;
+		if (event.data.command === "error") {
+			this.onRegisterError(event.data.data.details);
+		} else {
+			this.registered = true;
+			this._address = new Address(event.data.data.address as string[]);
+			this.keepAliveTime = (event.data.data.sessionExpireTimeout as number) / 2;
 
-		this.keepAliveTimeout = setTimeout(this.keepAlive.bind(this), this.keepAliveTime);
-		this.pollTimeout = setTimeout(this.poll.bind(this), this.pollTime);
+			this.keepAliveTimeout = setTimeout(this.keepAlive.bind(this), this.keepAliveTime);
+			this.pollTimeout = setTimeout(this.poll.bind(this), this.pollTime);
 
-		Log.success("HTTPConnector registered: " + this.address!.toString(), 1);
+			Log.success("HTTPConnector registered: " + this.address!.toString(), 1);
+		}
 	}
 
 	onRegisterError (err: any) {
@@ -82,19 +68,15 @@ export default class HTTPConnector extends Node {
 
 	async keepAlive () {
 		try {
-			await fetch(this.url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({
-					sender: this.address!.data,
-					destination: [],
-					data: {
-						command: "keepAlive"
-					}
-				})
+			const event = new Event(this.dispatcher as Dispatcher, new Address(this.address as Address), new Address([]), {
+				command: "keepAlive"
 			});
+
+			const rsEvent = (await this.sendEvent(event))[0];
+
+			if (rsEvent.data.command === "error") {
+				throw new Error(rsEvent.data.data.details);
+			}
 
 			Log.success("HTTPConnector keepAlive", 4);
 
@@ -106,38 +88,39 @@ export default class HTTPConnector extends Node {
 
 	async poll () {
 		try {
-			const response = await fetch(this.url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({
-					sender: this.address!.data,
-					destination: [],
-					data: {
-						command: "poll"
-					}
-				})
+			const event = new Event(this.dispatcher as Dispatcher, new Address(this.address as Address), new Address([]), {
+				command: "poll"
 			});
 
-			const data = await response.json();
+			const queue = await this.sendEvent(event);
 
-			const eventQueue = data.data.data.events as SerializedEvent[];
-
-			for (let i=0; i<eventQueue.length; i++) {
-				const raw = eventQueue[i];
-				const ev = new Event(this.dispatcher as Dispatcher, new Address(raw.sender), new Address(raw.destination), raw.data, raw.isResponse, raw.trace);
-				ev.reqId = raw.reqId;
-
-				ev.dispatch();
+			for (const event of queue) {
+				event.dispatch();
 			}
 
 			this.pollTimeout = setTimeout(this.poll.bind(this), this.pollTime);
 
-			Log.success("HTTPConnector poll returned " + eventQueue.length + " events", 4);
+			Log.success("HTTPConnector poll returned " + queue.length + " events", 4);
 		} catch (err: any) {
 			Log.error("HTTPConnector poll error: " + err.toString(), 1);
 		}
+	}
+
+	async sendEvent (event: Event): Promise<Event[]> {
+		const body = serialize(event);
+
+		const response = await fetch(this.url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/octet-stream",
+				"Content-Length": body.length.toString()
+			},
+			body: body
+		});
+
+		const bytes = await response.bytes();
+
+		return deserializeSequence(this.dispatcher as Dispatcher, bytes);
 	}
 
 	get isRegistered () {

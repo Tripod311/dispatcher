@@ -77,6 +77,8 @@ export default class ThreadConnector extends Node {
 		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch.call(this, address, this.address!.data.length, event);
 		} else {
+			const transferList = event.captureTransfers();
+
 			this.channel!.postMessage({
 				sender: event.sender.data,
 				destination: event.destination.data,
@@ -84,7 +86,7 @@ export default class ThreadConnector extends Node {
 				isResponse: event.isResponse,
 				trace: event.trace,
 				reqId: event.reqId
-			});
+			}, transferList);
 		}
 	}
 

@@ -1,24 +1,19 @@
 import type { WebSocketServer, WebSocket } from "ws"
-import { Node } from "../common/node.js"
+import EndpointNode from "../common/endpointNode.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
 import { Event } from "../common/event.js"
 import WSConnection from "./wsConnection.js"
 import Log from "../utils/log.js"
 
-export interface WSEndpointOptions {
-	interval: number;
-	threshold: number;
-}
-
-export class WSEndpoint extends Node {
+export default class WSEndpoint extends EndpointNode {
 	private server: WebSocketServer;
-	private options: WSEndpointOptions;
+	private options: { interval: number; threshold: number };
 	private connectionHandle: (ws: WebSocket) => void;
 	private errorHandle: (err: any) => void;
 	private counter: number = 0;
 
-	constructor(server: WebSocketServer, options: WSEndpointOptions) {
+	constructor(server: WebSocketServer, options: { interval: number; threshold: number }) {
 		super();
 
 		this.server = server;

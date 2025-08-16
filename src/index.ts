@@ -11,16 +11,16 @@ import HTTPEndpoint from "./node/httpEndpoint.js"
 import type { TCPConnectorOptions } from "./node/tcpConnector.js"
 import { TCPConnector } from "./node/tcpConnector.js"
 import TCPConnection from "./node/tcpConnection.js"
-import type { TCPEndpointOptions } from "./node/tcpEndpoint.js"
-import { TCPEndpoint } from "./node/tcpEndpoint.js"
+import TCPEndpoint from "./node/tcpEndpoint.js"
 import ThreadConnector from "./node/threadConnector.js"
 import type { ThreadNodeOptions } from "./node/threadNode.js"
 import { ThreadNode } from "./node/threadNode.js"
 import WSConnection from "./node/wsConnection.js"
-import { WSEndpoint } from "./node/wsEndpoint.js"
-import type { WSEndpointOptions } from "./node/wsEndpoint.js"
+import WSEndpoint from "./node/wsEndpoint.js"
 
 import Log from "./utils/log.js"
+import { serialize as SerializeEvent, deserialize as DeserializeEvent } from "./utils/eventUtils.js"
+import StreamProcessor from "./utils/streamProcessor.js"
 
 import HTTPConnector from "./browser/httpConnector.js"
 import WSConnector from "./browser/wsConnector.js"
@@ -30,9 +30,7 @@ export type {
 	SerializedEvent,
 	EventData,
 	TCPConnectorOptions,
-	ThreadNodeOptions,
-	WSEndpointOptions,
-	TCPEndpointOptions
+	ThreadNodeOptions
 }
 
 export default {
@@ -56,5 +54,8 @@ export default {
 	WSEndpoint,
 	WSConnector,
 
-	Log
+	Log,
+	SerializeEvent,
+	DeserializeEvent,
+	StreamProcessor
 }

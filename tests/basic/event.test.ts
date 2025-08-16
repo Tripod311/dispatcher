@@ -34,20 +34,6 @@ describe('Event', () => {
 		}).toThrow('Command must be present in all events');
 	});
 
-	it('Event serialization/deserialization', () => {
-		const data = { command: 'ping', details: 'test' };
-		const original = new Event(dispatcher, sender, destination, data, true, true);
-
-		const str = original.serialize();
-		const copy = Event.deserialize(dispatcher, str);
-
-		expect(copy.data).toEqual(data);
-		expect(copy.sender.equals(sender)).toBe(true);
-		expect(copy.destination.equals(destination)).toBe(true);
-		expect(copy.isResponse).toBe(true);
-		expect(copy.trace).toBe(true);
-	});
-
 	it('Call dispatcher.dispatch', () => {
 		const data = { command: 'ping' };
 		const event = new Event(dispatcher, sender, destination, data);

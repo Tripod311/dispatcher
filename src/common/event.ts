@@ -59,17 +59,6 @@ export class Event {
 		this.trace = trace;
 	}
 
-	serialize (): string {
-		return JSON.stringify({
-			sender: this.sender.data,
-			destination: this.destination.data,
-			data: this.data,
-			isResponse: this.isResponse,
-			trace: this.trace,
-			reqId: this.reqId
-		});
-	}
-
 	dispatch (hop: number = 0) {
 		this.dispatcher.dispatch(this.destination, this, hop);
 	}
@@ -86,11 +75,5 @@ export class Event {
 		lookUpBuffers(this.data, result);
 
 		return result;
-	}
-
-	static deserialize (dispatcher: Dispatcher, str: string): Event {
-		let ds = JSON.parse(str) as SerializedEvent;
-
-		return new Event(dispatcher, new Address(ds.sender), new Address(ds.destination), ds.data, ds.isResponse || false, ds.trace || false);
 	}
 }

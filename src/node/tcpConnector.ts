@@ -4,8 +4,8 @@ import { Node } from "../common/node.js"
 import { Event } from "../common/event.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
-import type { EventData, SerializedEvent } from "../common/event.js"
-import JSONStreamProcessor from "../utils/jsonStreamProcessor.js"
+import StreamProcessor from "../utils/streamProcessor.js"
+import { serialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
 export interface TCPConnectorOptions {
@@ -18,12 +18,12 @@ export interface TCPConnectorOptions {
 export class TCPConnector extends Node {
 	private options: TCPConnectorOptions;
 	private socket!: Socket;
-	private processor!: JSONStreamProcessor;
+	private processor!: StreamProcessor;
 	private registered: boolean = false;
 	private pingCounter: number = 0;
 	private pingInterval: ReturnType<typeof setInterval> | undefined = undefined;
 	private connectedHandle: () => void;
-	private messageHandle: (msg: any) => void;
+	private messageHandle: (event: Event) => void;
 	private errorHandle: (err: Error) => void;
 	private closeHandle: () => void;
 
@@ -44,7 +44,7 @@ export class TCPConnector extends Node {
 		try {
 			this.socket = Net.createConnection(this.options.port, this.options.host);
 			this.socket.on("connect", this.connectedHandle);
-			this.processor = new JSONStreamProcessor(this.socket);
+			this.processor = new StreamProcessor(this.dispatcher as Dispatcher, this.socket);
 			this.processor.on("message", this.messageHandle);
 			this.socket.on("error", this.errorHandle);
 			this.socket.on("close", this.closeHandle)
@@ -65,14 +65,7 @@ export class TCPConnector extends Node {
 		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch(address, this.address!.data.length, event);
 		} else {
-			this.socket.write(JSON.stringify({
-				sender: event.sender.data,
-				destination: event.destination.data,
-				data: event.data,
-				isResponse: event.isResponse,
-				trace: event.trace,
-				reqId: event.reqId
-			}));
+			this.socket.write(serialize(event));
 		}
 	}
 
@@ -83,23 +76,14 @@ export class TCPConnector extends Node {
 		}
 	}
 
-	onMessage (msg: any) {
-		const event = msg as SerializedEvent;
-
-		if (!event.data || !event.data.command) {
-			Log.error(`TCPConnector: Invalid message format \n${JSON.stringify(msg)}`, 1);
-			return;
-		}
-
+	onMessage (event: Event) {
 		switch (event.data.command) {
 			case "ping":
-				this.socket.write(JSON.stringify({
-					sender: [],
-					destination: [],
-					data: {
-						command: "pong"
-					}
-				}));
+				const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+					command: "pong"
+				});
+
+				this.socket.write(serialize(ev));
 				break;
 			case "pong":
 				this.pingCounter = 0;
@@ -118,9 +102,7 @@ export class TCPConnector extends Node {
 				if (!this.registered) {
 					Log.warning("TCPConnector receiving data before registration\n" + JSON.stringify(event.data), 1);
 				} else {
-					let rev = new Event(this.dispatcher as Dispatcher, new Address(event.sender), new Address(event.destination), event.data, event.isResponse, event.trace);
-					rev.reqId = event.reqId;
-					rev.dispatch();
+					event.dispatch();
 				}
 				break;
 		}
@@ -143,13 +125,11 @@ export class TCPConnector extends Node {
 
 			this.socket.end();
 		} else {
-			this.socket.write(JSON.stringify({
-				sender: [],
-				destination: [],
-				data: {
-					command: "ping"
-				}
-			}));
+			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+				command: "ping"
+			});
+
+			this.socket.write(serialize(ev));
 		}
 
 		this.pingCounter++;

@@ -1,12 +1,12 @@
 import type { WebSocket } from "ws"
-import { Node } from "../common/node.js"
+import ConnectionNode from "../common/connectionNode.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
-import type { SerializedEvent } from "../common/event.js"
 import { Event } from "../common/event.js"
+import { serialize, deserialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
-export default class WSConnection extends Node {
+export default class WSConnection extends ConnectionNode {
 	private socket: WebSocket;
 	private options: { interval: number; threshold: number; };
 	private messageHandle: (msg: any) => void;
@@ -36,16 +36,14 @@ export default class WSConnection extends Node {
 			this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
 		}
 
-		this.socket.send(JSON.stringify({
-			sender: [],
-			destination: [],
+		const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+			command: "register",
 			data: {
-				command: "register",
-				data: {
-					address: this.address!.data
-				}
+				address: this.address!.data
 			}
-		}));
+		});
+
+		this.socket.send(serialize(ev));
 	}
 
 	detach () {
@@ -61,49 +59,40 @@ export default class WSConnection extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		this.socket.send(JSON.stringify({
-			sender: event.sender.data,
-			destination: event.destination.data,
-			data: event.data,
-			isResponse: event.isResponse,
-			trace: event.trace,
-			reqId: event.reqId
-		}));
+		this.socket.send(serialize(event));
 	}
 
 	onMessage (msg: any) {
-		let ev;
+		let ev: Event | undefined;
 
 		try {
-			ev = JSON.parse(msg) as SerializedEvent;
-
-			if (!ev.data || !ev.data.command) {
-				Log.error("WSConnection invalid message format: " + msg, 1);
-				return;
-			}
+			ev = deserialize(this.dispatcher as Dispatcher, msg);
 		} catch (e) {
 			Log.error("WSConnection invalid message format: " + msg, 1);
 			return;
 		}
 
-		switch (ev.data.command) {
+		switch (ev!.data.command) {
 			case "ping":
-				this.socket.send(JSON.stringify({
-					sender: [],
-					destination: [],
+				const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+					command: "pong",
 					data: {
-						command: "pong"
+						address: this.address!.data
 					}
-				}));
+				});
+
+				this.socket.send(serialize(ev));
 				return;
 			case "pong":
 				this.pingCounter = 0;
 				return;
 		}
 
-		const rev = new Event(this.dispatcher as Dispatcher, new Address(ev.sender), new Address(ev.destination), ev.data, ev.isResponse, ev.trace);
-		rev.reqId = ev.reqId;
-		rev.dispatch();
+		if (this.restrictions.check(ev.destination)) {
+			ev.dispatch();
+		} else {
+			Log.warning('WSConnection suppressed event to ' + ev.destination.toString(), 1);
+		}
 	}
 
 	onError (err: any) {
@@ -131,13 +120,14 @@ export default class WSConnection extends Node {
 				});
 			}
 		} else {
-			this.socket.send(JSON.stringify({
-				sender: [],
-				destination: [],
+			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+				command: "ping",
 				data: {
-					command: "ping"
+					address: this.address!.data
 				}
-			}));
+			});
+
+			this.socket.send(serialize(ev));
 		}
 
 		this.pingCounter++;

@@ -1,26 +1,20 @@
 import type { Server, Socket } from "net"
-import { Node } from "../common/node.js"
+import EndpointNode from "../common/endpointNode.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
-import type { EventData } from "../common/event.js"
 import { Event } from "../common/event.js"
 import TCPConnection from "./tcpConnection.js"
 import Log from "../utils/log.js"
 
-export interface TCPEndpointOptions {
-	threshold: number;
-	interval: number;
-}
-
-export class TCPEndpoint extends Node {
+export default class TCPEndpoint extends EndpointNode {
 	private server: Server;
-	private pingOptions: TCPEndpointOptions;
+	private pingOptions: { interval: number; threshold: number };
 	private connectionHandle: (socket: Socket) => void;
 	private errorHandle: (err: Error) => void;
 	private counter: number = 0;
 
-	constructor (server: Server, pingOptions: TCPEndpointOptions = { threshold: 5, interval: 5000 }) {
-		super();
+	constructor (server: Server, pingOptions: { interval: number; threshold: number } = { threshold: 5, interval: 5000 }, addresses?: Address[] | Set<Address>) {
+		super(addresses);
 		
 		this.server = server;
 		this.pingOptions = pingOptions;

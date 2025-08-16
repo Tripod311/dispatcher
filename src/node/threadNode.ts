@@ -81,6 +81,8 @@ export class ThreadNode extends Node {
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
 		if (this.connected) {
+			const transferList = event.captureTransfers();
+
 			this.channel!.postMessage({
 				sender: event.sender.data,
 				destination: event.destination.data,
@@ -88,7 +90,7 @@ export class ThreadNode extends Node {
 				trace: event.trace,
 				isResponse: event.isResponse,
 				reqId: event.reqId
-			});
+			}, transferList);
 		} else {
 			Log.warning("ThreadNode received event before connected", 1);
 		}

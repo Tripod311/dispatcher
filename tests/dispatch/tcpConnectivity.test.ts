@@ -4,7 +4,7 @@ import Dispatcher from '../../src/common/dispatcher.ts'
 import Address from '../../src/common/address.ts'
 import { Event } from '../../src/common/event.ts'
 import { Node } from '../../src/common/node.ts'
-import { TCPEndpoint } from "../../src/node/tcpEndpoint.ts"
+import TCPEndpoint from "../../src/node/tcpEndpoint.ts"
 import { TCPConnector } from "../../src/node/tcpConnector.ts"
 
 function setupPair () {
@@ -17,6 +17,8 @@ function setupPair () {
 	localNode.addChild("localReceiver", localReceiver);
 	localNode.addChild("endpoint", endpoint);
 	server.listen(0);
+
+	endpoint.restrictions.add(new Address(["root", "localReceiver"]));
 
 	const port = (server.address() as any).port
 

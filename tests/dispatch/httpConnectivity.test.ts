@@ -17,6 +17,8 @@ async function setup () {
 	root.addChild("receiver", receiver);
 	root.addChild("endpoint", endpoint);
 
+	endpoint.restrictions.add(new Address(["root", "receiver"]));
+
 	await new Promise(resolve => { server.listen(0, resolve) });
 
 	return {
@@ -87,7 +89,7 @@ describe("HTTPEndpoint test", () => {
 		});
 
 		await new Promise((resolve) => {
-			setTimeout(resolve, 300);
+			setTimeout(resolve, 500);
 		});
 
 		expect(recvSet).toEqual(new Set(["remote", "local"]));

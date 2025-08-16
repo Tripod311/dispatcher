@@ -1,23 +1,23 @@
 import type { Server as HTTPServer, IncomingMessage, ServerResponse } from 'http';
 import type { Server as HTTPSServer } from 'https';
 import Address from "../common/address.js"
-import { Node } from "../common/node.js"
+import EndpointNode from "../common/endpointNode.js"
 import { Event } from "../common/event.js"
 import type { SerializedEvent } from "../common/event.js"
 import type Dispatcher from "../common/dispatcher.js"
-import { MultipartParser } from "../utils/multipartParser.js"
 import HTTPConnection from "./httpConnection.js"
+import { serialize, deserialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
-export default class HTTPEndpoint extends Node {
+export default class HTTPEndpoint extends EndpointNode {
 	private server: HTTPServer | HTTPSServer;
 	private sessionExpireTimeout: number = 10000;
 	private sessionPollTimeout: number = 30000;
 	private requestHandle: (request: IncomingMessage, response: ServerResponse) => void;
 	private counter: number = 0;
 
-	constructor (server: HTTPServer | HTTPSServer, sessionExpireTimeout?: number, sessionPollTimeout?: number) {
-		super ();
+	constructor (server: HTTPServer | HTTPSServer, sessionExpireTimeout?: number, sessionPollTimeout?: number, addresses?: Address[] | Set<Address>) {
+		super(addresses);
 
 		this.server = server;
 		if (sessionExpireTimeout) this.sessionExpireTimeout = sessionExpireTimeout;
@@ -41,175 +41,94 @@ export default class HTTPEndpoint extends Node {
 	}
 
 	async onRequest (request: IncomingMessage, response: ServerResponse) {
+		let event: Event;
+
 		try {
-			const contentType = request.headers["content-type"];
+			event = await this.readEvent(request);
+		} catch (err: any) {
+			Log.error("HTTPEndpoint error on reading event: " + err.toString(), 1);
+			this.respondWithEvents(response, 500, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+				command: "error",
+				data: {
+					details: err.toString()
+				}
+			})]);
+			return;
+		}
 
-			let event: SerializedEvent;
+		let connectionId;
 
-			switch (contentType) {
-				case "application/json":
-					event = await HTTPEndpoint.readJSONBody(request);
-					break;
-				case "multipart/form-data":
-					event = await MultipartParser.parse(request);
-					break;
-				default:
-					throw new Error("Unsupported content-type " + contentType);
-			}
+		switch (event.data.command) {
+			case "register":
+				connectionId = (this.counter++).toString();
 
-			const command = event.data.command;
+				const connectionAddress = this.address!.data;
+				connectionAddress.push(connectionId);
 
-			if (!command) {
-				response.writeHead(403, {
-					"Content-Type": "application/json"
-				});
-				response.end(JSON.stringify({
-					sender: [],
-					destination: [],
+				this.addChild(connectionId, new HTTPConnection(this.sessionExpireTimeout, this.sessionPollTimeout));
+
+				this.respondWithEvents(response, 200, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+					command: "registerResponse",
 					data: {
+						address: connectionAddress,
+						sessionExpireTimeout: this.sessionExpireTimeout
+					}
+				})]);
+				break;
+			case "poll":
+				connectionId = event.sender.data[this.address!.length];
+
+				if (this.subNodes[connectionId] !== undefined) {
+					const queue = await (this.subNodes[connectionId] as HTTPConnection).poll();
+					this.respondWithEvents(response, 200, queue);
+				} else {
+					this.respondWithEvents(response, 403, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
 						command: "error",
 						data: {
-							details: "Event sent without command"
+							details: "Session expired"
 						}
-					}
-				}));
-				return;
-			}
-
-			let connectionId;
-
-			switch (command) {
-				case "register":
-					connectionId = (this.counter++).toString();
-
-					const connectionAddress = this.address!.data;
-					connectionAddress.push(connectionId);
-
-					this.addChild(connectionId, new HTTPConnection(this.sessionExpireTimeout, this.sessionPollTimeout));
-
-					response.writeHead(200, {
-						'Content-Type': "application/json"
-					});
-					response.end(JSON.stringify({
-						sender: [],
-						destination: [],
-						data: {
-							command: "registerResponse",
-							data: {
-								address: connectionAddress,
-								sessionExpireTimeout: this.sessionExpireTimeout
-							}
-						}
-					}));
-					break;
-				case "poll":
-					connectionId = event.sender[this.address!.length];
-
-					if (this.subNodes[connectionId] !== undefined) {
-						const queue = await (this.subNodes[connectionId] as HTTPConnection).poll();
-						response.writeHead(200, {
-							"Content-Type": "application/json"
-						});
-						response.end(JSON.stringify({
-							sender: [],
-							destination: [],
-							data: {
-								command: "pollResponse",
-								data: {
-									events: queue
-								}
-							}
-						}));
-					} else {
-						response.writeHead(403, {
-							'Content-Type': "application/json"
-						});
-						response.end(JSON.stringify({
-							sender: [],
-							destination: [],
-							data: {
-								command: "error",
-								data: {
-									details: "Session expired"
-								}
-							}
-						}));
-					}
-					break;
-				case "keepAlive":
-					connectionId = event.sender[this.address!.length];
-
-					if (this.subNodes[connectionId] !== undefined) {
-						(this.subNodes[connectionId] as HTTPConnection).keepAlive();
-						response.writeHead(200, {
-							'Content-Type': "application/json"
-						});
-						response.end(JSON.stringify({
-							sender: [],
-							destination: [],
-							data: {
-								command: "keepAliveResponse"
-							}
-						}));
-					} else {
-						response.writeHead(403, {
-							'Content-Type': "application/json"
-						});
-						response.end(JSON.stringify({
-							sender: [],
-							destination: [],
-							data: {
-								command: "error",
-								data: {
-									details: "Session expired"
-								}
-							}
-						}));
-					}
-					break;
-				default:
-					connectionId = event.sender[this.address!.length];
-
-					if (this.subNodes[connectionId] !== undefined) {
-						(this.subNodes[connectionId] as HTTPConnection).process(event);
-						response.writeHead(200, {
-							"Content-Type": "application/json"
-						});
-						response.end(JSON.stringify({error: false}));
-					} else {
-						response.writeHead(403, {
-							'Content-Type': "application/json"
-						});
-						response.end(JSON.stringify({
-							sender: [],
-							destination: [],
-							data: {
-								command: "error",
-								data: {
-									details: "Session expired"
-								}
-							}
-						}));
-					}
-					break;
-			}
-		} catch (err: any) {
-			const details = "HTTPEndpoint error on event processing: " + err.toString();
-			Log.warning(details, 1);
-
-			response.writeHead(403, {
-				'Content-Type': "application/json"
-			});
-			response.end(JSON.stringify({
-				sender: [],
-				destination: [],
-				data: {
-					command: "error",
-					data: {
-						details: details
-					}
+					})]);
 				}
-			}));
+				break;
+			case "keepAlive":
+				connectionId = event.sender.data[this.address!.length];
+
+				if (this.subNodes[connectionId] !== undefined) {
+					(this.subNodes[connectionId] as HTTPConnection).keepAlive();
+					this.respondWithEvents(response, 200, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+						command: "keepAliveResponse"
+					})]);
+				} else {
+					this.respondWithEvents(response, 403, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+						command: "error",
+						data: {
+							details: "Session expired"
+						}
+					})]);
+				}
+				break;
+			default:
+				connectionId = event.sender.data[this.address!.length];
+
+				if (this.subNodes[connectionId] !== undefined) {
+					if ((this.subNodes[connectionId] as HTTPConnection).restrictions.check(event.destination)) {
+						event.dispatch();
+					} else {
+						Log.warning("HTTPConnection suppressed event to " + event.destination.toString(), 1);
+					}
+
+					this.respondWithEvents(response, 200, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+						command: "processed"
+					})]);
+				} else {
+					this.respondWithEvents(response, 403, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+						command: "error",
+						data: {
+							details: "Session expired"
+						}
+					})]);
+				}
+				break;
 		}
 	}
 
@@ -219,25 +138,45 @@ export default class HTTPEndpoint extends Node {
 		this.delChild(sessionId);
 	}
 
-	private static readJSONBody (request: IncomingMessage): Promise<SerializedEvent> {
-		return new Promise<SerializedEvent>((resolve, reject) => {
-			let body: Buffer[] = [];
+	readEvent (request: IncomingMessage): Promise<Event> {
+		return new Promise((resolve, reject) => {
+			const buffers: Buffer[] = [];
 
-			request.on('data', (chunk) => {
-				body.push(chunk);
+			request.on("data", chunk => {
+				buffers.push(chunk);
 			});
 
-			request.on('end', () => {
+			request.on("end", () => {
+				const buf = Buffer.concat(buffers);
+
 				try {
-					resolve(JSON.parse(body.join('')) as SerializedEvent);
+					resolve(deserialize(this.dispatcher as Dispatcher, buf));
 				} catch (err: any) {
-					reject("JSON parsing error: " + err.toString());
+					reject(err);
 				}
 			});
 
-			request.on('error', (err: any) => {
-				reject("Request error " + err.toString());
+			request.on("error", (err) => {
+				reject(err)
 			});
 		});
+	}
+
+	respondWithEvents (response: ServerResponse, code: number, events: Event[]) {
+		const serialized = events.map(e => serialize(e));
+		const totalLength = serialized.reduce((acc, val) => acc + val.length, 0);
+		const responseBuffer = new Uint8Array(totalLength);
+
+		let offset = 0;
+		for (const arr of serialized) {
+			responseBuffer.set(arr, offset);
+			offset += arr.length;
+		}
+
+		response.writeHead(code, {
+			'Content-Type': "application/octet-stream",
+			'Content-Length': totalLength
+		});
+		response.end(responseBuffer);
 	}
 }

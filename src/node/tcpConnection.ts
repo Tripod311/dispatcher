@@ -1,24 +1,24 @@
 import { Socket } from "net"
-import { Node } from "../common/node.js"
+import ConnectionNode from "../common/connectionNode.js"
 import { Event } from "../common/event.js"
 import Address from "../common/address.js"
 import type Dispatcher from "../common/dispatcher.js"
-import type { EventData, SerializedEvent } from "../common/event.js"
-import type { TCPEndpointOptions } from "./tcpEndpoint.js"
+import StreamProcessor from "../utils/streamProcessor.js"
 import JSONStreamProcessor from "../utils/jsonStreamProcessor.js"
+import { serialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
-export default class TCPConnection extends Node {
+export default class TCPConnection extends ConnectionNode {
 	private socket: Socket;
-	private pingOptions: TCPEndpointOptions;
-	private messageHandle: (msg: any) => void;
+	private pingOptions: { interval: number; threshold: number };
+	private messageHandle: (event: Event) => void;
 	private errorHandle: (err: Error) => void;
 	private closeHandle: () => void;
 	private pingInterval: ReturnType<typeof setInterval> | undefined = undefined;
 	private pingCounter: number = 0;
-	private processor!: JSONStreamProcessor;
+	private processor!: StreamProcessor;
 
-	constructor (socket: Socket, pingOptions: TCPEndpointOptions) {
+	constructor (socket: Socket, pingOptions: { interval: number; threshold: number }) {
 		super();
 
 		this.socket = socket;
@@ -32,7 +32,7 @@ export default class TCPConnection extends Node {
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
 
-		this.processor = new JSONStreamProcessor(this.socket);
+		this.processor = new StreamProcessor(this.dispatcher as Dispatcher, this.socket);
 		this.processor.on("message", this.messageHandle);
 		this.socket.on("error", this.errorHandle);
 		this.socket.on("close", this.closeHandle);
@@ -41,16 +41,14 @@ export default class TCPConnection extends Node {
 			this.pingInterval = setInterval(this.pingSocket.bind(this), this.pingOptions.interval);
 		}
 
-		this.socket.write(JSON.stringify({
-			sender: [],
-			destination: [],
+		const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+			command: "register",
 			data: {
-				command: "register",
-				data: {
-					address: this.address!.data
-				}
+				address: this.address!.data
 			}
-		}));
+		});
+
+		this.socket.write(serialize(ev));
 	}
 
 	detach () {
@@ -65,45 +63,30 @@ export default class TCPConnection extends Node {
 	}
 
 	dispatch (address: Address, hopIndex: number, event: Event) {
-		this.socket.write(JSON.stringify({
-			sender: event.sender.data,
-			destination: event.destination.data,
-			data: event.data,
-			isResponse: event.isResponse,
-			trace: event.trace,
-			reqId: event.reqId
-		}));
+		this.socket.write(serialize(event));
 	}
 
-	handleMessage (message: any) {
-		const event = message as SerializedEvent;
+	handleMessage (event: Event) {
+		switch (event.data.command) {
+			case "ping":
+				const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+					command: "pong",
+					data: {
+						address: this.address!.data
+					}
+				});
 
-		try {
-			if (!event.data.command) {
-				Log.error(`Invalid message format\n${JSON.stringify(event)}`, 1);
+				this.socket.write(serialize(ev));
 				return;
-			}
-
-			switch (event.data.command) {
-				case "ping":
-					this.socket.write(JSON.stringify({
-						sender: [],
-						destination: [],
-						data: {
-							command: "pong"
-						}
-					}));
-					return;
-				case "pong":
-					this.pingCounter = 0;
-					return;
-			}
-
-			let ev = new Event(this.dispatcher as Dispatcher, new Address(event.sender), new Address(event.destination), event.data, event.isResponse, event.trace);
-			ev.reqId = event.reqId;
-			ev.dispatch();
-		} catch (e) {
-			Log.error("Invalid message format: " + e + "\n" + message.toString(), 1);
+			case "pong":
+				this.pingCounter = 0;
+				return;
+		}
+		
+		if (this.restrictions.check(event.destination)) {
+			event.dispatch();
+		} else {
+			Log.warning('TCPConnection suppressed event to ' + event.destination.toString(), 1);
 		}
 	}
 
@@ -131,13 +114,14 @@ export default class TCPConnection extends Node {
 				});
 			}
 		} else {
-			this.socket.write(JSON.stringify({
-				sender: [],
-				destination: [],
+			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+				command: "ping",
 				data: {
-					command: "ping"
+					address: this.address!.data
 				}
-			}));
+			});
+
+			this.socket.write(serialize(ev));
 		}
 
 		this.pingCounter++;

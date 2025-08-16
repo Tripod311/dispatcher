@@ -4,7 +4,7 @@ import Dispatcher from '../../src/common/dispatcher.ts'
 import Address from '../../src/common/address.ts'
 import { Event } from '../../src/common/event.ts'
 import { Node } from '../../src/common/node.ts'
-import { WSEndpoint } from "../../src/node/wsEndpoint.ts"
+import WSEndpoint from "../../src/node/wsEndpoint.ts"
 import WSConnector from "../../src/browser/wsConnector.ts"
 
 async function setupPair () {
@@ -16,6 +16,8 @@ async function setupPair () {
 	localDispatcher.setRoot(root, new Address(["root"]));
 	root.addChild("receiver", localReceiver);
 	root.addChild("endpoint", endpoint);
+
+	endpoint.restrictions.add(new Address(["root", "receiver"]));
 
 	await new Promise(resolve => server.once('listening', resolve));
 

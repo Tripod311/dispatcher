@@ -4,6 +4,7 @@ import { Event } from "../common/event.js"
 import type Dispatcher from "../common/dispatcher.js"
 import { Node } from "../common/node.js"
 import Log from "../utils/log.js"
+import { serialize, deserialize } from "../utils/eventUtils.js"
 
 export default class WSConnector extends Node {
 	private registered: boolean = false;
@@ -56,26 +57,14 @@ export default class WSConnector extends Node {
 		if (this.address!.equals(address) || this.address!.isParentOf(address)) {
 			super.dispatch(address, this.address!.data.length, event);
 		} else {
-			this.socket.send(JSON.stringify({
-				sender: event.sender.data,
-				destination: event.destination.data,
-				data: event.data,
-				isResponse: event.isResponse,
-				trace: event.trace,
-				reqId: event.reqId
-			}));
+			this.socket.send(serialize(event));
 		}
 	}
 
 	onMessage (msg: MessageEvent) {
 		let event;
 		try {
-			event = JSON.parse(msg.data) as SerializedEvent;
-
-			if (!event.data || !event.data.command) {
-				Log.error(`WSConnector: Invalid message format \n${JSON.stringify(msg.data)}`, 1);
-				return;
-			}
+			event = deserialize(this.dispatcher as Dispatcher, msg.data);
 		} catch (e) {
 			Log.error(`WSConnector: Invalid message format \n${JSON.stringify(msg.data)}`, 1);
 			return;
@@ -83,13 +72,11 @@ export default class WSConnector extends Node {
 
 		switch (event.data.command) {
 			case "ping":
-				this.socket.send(JSON.stringify({
-					sender: [],
-					destination: [],
-					data: {
-						command: "pong"
-					}
-				}));
+				const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+					command: "pong"
+				});
+
+				this.socket.send(serialize(ev));
 				break;
 			case "pong":
 				this.pingCounter = 0;
@@ -108,9 +95,7 @@ export default class WSConnector extends Node {
 				if (!this.registered) {
 					Log.warning("WSConnector receiving data before registration\n" + JSON.stringify(event.data), 1);
 				} else {
-					let rev = new Event(this.dispatcher as Dispatcher, new Address(event.sender), new Address(event.destination), event.data, event.isResponse, event.trace);
-					rev.reqId = event.reqId;
-					rev.dispatch();
+					event.dispatch();
 				}
 				break;
 		}
@@ -134,13 +119,11 @@ export default class WSConnector extends Node {
 
 			this.socket.close();
 		} else {
-			this.socket.send(JSON.stringify({
-				sender: [],
-				destination: [],
-				data: {
-					command: "ping"
-				}
-			}));
+			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
+				command: "ping"
+			});
+
+			this.socket.send(serialize(ev));
 		}
 
 		this.pingCounter++;
