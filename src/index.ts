@@ -5,6 +5,7 @@ import Dispatcher from "./common/dispatcher.js"
 import { Event } from "./common/event.js"
 import type { SerializedEvent, EventData } from "./common/event.js"
 import Subscribable from "./common/subscribable.js"
+import Restrictions from "./common/restriuctions.js"
 
 import HTTPConnection from "./node/httpConnection.js"
 import HTTPEndpoint from "./node/httpEndpoint.js"
@@ -38,6 +39,7 @@ export default {
 	Node,
 	Dispatcher,
 	Event,
+	Restrictions,
 
 	HTTPConnection,
 	HTTPEndpoint,
