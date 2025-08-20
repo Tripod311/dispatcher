@@ -5,7 +5,7 @@ import Dispatcher from "./common/dispatcher.js"
 import { Event } from "./common/event.js"
 import type { SerializedEvent, EventData } from "./common/event.js"
 import Subscribable from "./common/subscribable.js"
-import Restrictions from "./common/restriuctions.js"
+import Restrictions from "./common/restrictions.js"
 
 import HTTPConnection from "./node/httpConnection.js"
 import HTTPEndpoint from "./node/httpEndpoint.js"
@@ -34,7 +34,7 @@ export type {
 	ThreadNodeOptions
 }
 
-export default {
+export {
 	Address,
 	Node,
 	Dispatcher,

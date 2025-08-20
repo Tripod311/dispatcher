@@ -9,7 +9,7 @@ interface ChainedEvent {
 	destination: Address;
 }
 
-export type NodeListener = (ev: Event) => void;
+export type NodeListener = ((ev: Event) => void) | ((ev: Event) => Promise<void>);
 
 export class Node {
 	protected dispatcher: Dispatcher | null;
