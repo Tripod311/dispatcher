@@ -10,7 +10,7 @@ import { serialize, deserialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
 export default class HTTPEndpoint extends EndpointNode {
-	private server: HTTPServer | HTTPSServer;
+	protected server: HTTPServer | HTTPSServer;
 	private sessionExpireTimeout: number = 10000;
 	private sessionPollTimeout: number = 30000;
 	private requestHandle: (request: IncomingMessage, response: ServerResponse) => void;

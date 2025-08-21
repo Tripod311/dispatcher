@@ -7,7 +7,7 @@ import WSConnection from "./wsConnection.js"
 import Log from "../utils/log.js"
 
 export default class WSEndpoint extends EndpointNode {
-	private server: WebSocketServer;
+	protected server: WebSocketServer;
 	private options: { interval: number; threshold: number };
 	private connectionHandle: (ws: WebSocket) => void;
 	private errorHandle: (err: any) => void;

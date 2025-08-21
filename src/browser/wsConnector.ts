@@ -8,7 +8,7 @@ import { serialize, deserialize } from "../utils/eventUtils.js"
 
 export default class WSConnector extends Node {
 	private registered: boolean = false;
-	private socket: WebSocket;
+	protected socket: WebSocket;
 	private options: { interval: number; threshold: number; };
 	private messageHandle: (msg: any) => void;
 	private errorHandle: (err: any) => void;

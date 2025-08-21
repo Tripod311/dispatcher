@@ -9,7 +9,7 @@ import { serialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
 export default class TCPConnection extends ConnectionNode {
-	private socket: Socket;
+	protected socket: Socket;
 	private pingOptions: { interval: number; threshold: number };
 	private messageHandle: (event: Event) => void;
 	private errorHandle: (err: Error) => void;

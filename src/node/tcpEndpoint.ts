@@ -7,7 +7,7 @@ import TCPConnection from "./tcpConnection.js"
 import Log from "../utils/log.js"
 
 export default class TCPEndpoint extends EndpointNode {
-	private server: Server;
+	protected server: Server;
 	private pingOptions: { interval: number; threshold: number };
 	private connectionHandle: (socket: Socket) => void;
 	private errorHandle: (err: Error) => void;

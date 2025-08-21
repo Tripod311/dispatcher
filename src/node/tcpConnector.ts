@@ -17,7 +17,7 @@ export interface TCPConnectorOptions {
 
 export class TCPConnector extends Node {
 	private options: TCPConnectorOptions;
-	private socket!: Socket;
+	protected socket!: Socket;
 	private processor!: StreamProcessor;
 	private registered: boolean = false;
 	private pingCounter: number = 0;

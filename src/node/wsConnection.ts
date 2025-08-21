@@ -7,7 +7,7 @@ import { serialize, deserialize } from "../utils/eventUtils.js"
 import Log from "../utils/log.js"
 
 export default class WSConnection extends ConnectionNode {
-	private socket: WebSocket;
+	protected socket: WebSocket;
 	private options: { interval: number; threshold: number; };
 	private messageHandle: (msg: any) => void;
 	private errorHandle: (err: any) => void;
