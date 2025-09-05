@@ -13,16 +13,14 @@ export default class WSEndpoint extends EndpointNode {
 	private errorHandle: (err: any) => void;
 	private counter: number = 0;
 
-	constructor(server: WebSocketServer, options: { interval: number; threshold: number }) {
-		super();
+	constructor(server: WebSocketServer, options: { interval: number; threshold: number }, addresses?: Address[] | Set<Address>) {
+		super(addresses);
 
 		this.server = server;
 		this.options = options;
 
 		this.connectionHandle = this.onConnection.bind(this);
 		this.errorHandle = this.onError.bind(this);
-
-		this.setListener("closeConnection", this.closeConnection.bind(this));
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -30,6 +28,8 @@ export default class WSEndpoint extends EndpointNode {
 
 		this.server.on("connection", this.connectionHandle);
 		this.server.on("error", this.errorHandle);
+
+		this.restrictions.add(this.address!);
 	}
 
 	detach () {
@@ -41,15 +41,14 @@ export default class WSEndpoint extends EndpointNode {
 
 	onConnection (socket: WebSocket) {
 		let id = this.counter++;
-		this.addChild(id.toString(), new WSConnection(socket, this.options));
+		this.addChild(id.toString(), new WSConnection(socket, this.options, this.closeConnection.bind(this)));
 	}
 
 	onError (err: any) {
 		Log.error("WSEndpoint error: " + err.toString(), 1);
 	}
 
-	closeConnection (event: Event) {
-		const id = event.sender.data[this.address!.length];
+	closeConnection (id: string) {
 		this.delChild(id);
 	}
 }

@@ -3,34 +3,60 @@ import ThreadConnector from "../../dist/node/threadConnector.js"
 
 const connector = new ThreadConnector();
 
-function waitForRegistration () {
-	if (connector.isRegistered) {
-		const node = new Node();
-		connector.addChild("receiver", node);
-		const subNode = new Node();
-		node.addChild("subNode", subNode);
+connector.readyPromise.then(() => {
+	const node = new Node();
+	connector.addChild("receiver", node);
+	const subNode = new Node();
+	node.addChild("subNode", subNode);
 
-		node.setListener("call", (event) => {
-			node.send(["root", "thread", "receiver", "subNode"], {
-				command: "call"
-			})
-		});
-		node.setListener("address", (event) => {
-			event.response({
-				command: "addressResponse",
-				data: {
-					address: node.address.data
-				}
-			})
-		});
-		subNode.setListener("call", (event) => {
-			subNode.send(["root", "receiver"], {
-				command: "subNodeCall"
-			})
-		});
-	} else {
-		setTimeout(waitForRegistration, 100);
-	}
-}
+	node.setListener("call", (event) => {
+		node.send(["root", "thread", "receiver", "subNode"], {
+			command: "call"
+		})
+	});
+	node.setListener("address", (event) => {
+		event.response({
+			command: "addressResponse",
+			data: {
+				address: node.address.data
+			}
+		})
+	});
+	subNode.setListener("call", (event) => {
+		subNode.send(["root", "receiver"], {
+			command: "subNodeCall"
+		})
+	});
+});
 
-waitForRegistration();
+// function waitForRegistration () {
+// 	if (connector.isRegistered) {
+// 		const node = new Node();
+// 		connector.addChild("receiver", node);
+// 		const subNode = new Node();
+// 		node.addChild("subNode", subNode);
+
+// 		node.setListener("call", (event) => {
+// 			node.send(["root", "thread", "receiver", "subNode"], {
+// 				command: "call"
+// 			})
+// 		});
+// 		node.setListener("address", (event) => {
+// 			event.response({
+// 				command: "addressResponse",
+// 				data: {
+// 					address: node.address.data
+// 				}
+// 			})
+// 		});
+// 		subNode.setListener("call", (event) => {
+// 			subNode.send(["root", "receiver"], {
+// 				command: "subNodeCall"
+// 			})
+// 		});
+// 	} else {
+// 		setTimeout(waitForRegistration, 100);
+// 	}
+// }
+
+// waitForRegistration();

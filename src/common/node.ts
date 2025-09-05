@@ -100,9 +100,6 @@ export class Node {
 				details: "Node " + event.destination.toString() + " is not present"
 			};
 
-			if (event.data.reqId) {
-				responseData.reqId = event.data.reqId;
-			}
 			event.response(responseData);
 		}
 	}

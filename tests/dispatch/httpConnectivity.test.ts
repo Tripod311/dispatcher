@@ -38,7 +38,7 @@ describe("HTTPEndpoint test", () => {
 
 		const localDispatcher = new Dispatcher();
 		const localConnector = new HTTPConnector("http://localhost:" + port, 500);
-		localDispatcher.setRoot(localConnector);
+		localDispatcher.setRoot(localConnector, new Address([]));
 
 		await new Promise((resolve) => {
 			setTimeout(resolve, 300);
@@ -58,7 +58,7 @@ describe("HTTPEndpoint test", () => {
 
 		const localDispatcher = new Dispatcher();
 		const localConnector = new HTTPConnector("http://localhost:" + port, 500);
-		localDispatcher.setRoot(localConnector);
+		localDispatcher.setRoot(localConnector, new Address([]));
 
 		await new Promise((resolve) => {
 			setTimeout(resolve, 300);

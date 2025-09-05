@@ -17,12 +17,14 @@ export default class TCPConnection extends ConnectionNode {
 	private pingInterval: ReturnType<typeof setInterval> | undefined = undefined;
 	private pingCounter: number = 0;
 	private processor!: StreamProcessor;
+	private onClose: (id: string) => void;
 
-	constructor (socket: Socket, pingOptions: { interval: number; threshold: number }) {
+	constructor (socket: Socket, pingOptions: { interval: number; threshold: number }, onClose: (id: string) => void) {
 		super();
 
 		this.socket = socket;
 		this.pingOptions = pingOptions;
+		this.onClose = onClose;
 
 		this.messageHandle = this.handleMessage.bind(this);
 		this.errorHandle = this.handleError.bind(this);
@@ -87,6 +89,11 @@ export default class TCPConnection extends ConnectionNode {
 			event.dispatch();
 		} else {
 			Log.warning('TCPConnection suppressed event to ' + event.destination.toString(), 1);
+			event.response({
+				command: event.data.command + "Response",
+				error: true,
+				details: 'TCPConnection suppressed event to ' + event.destination.toString()
+			});
 		}
 	}
 
@@ -98,9 +105,7 @@ export default class TCPConnection extends ConnectionNode {
 
 	handleClose () {
 		if (this.address !== null) {
-			this.send(this.address.parent, {
-				command: "closeConnection"
-			});
+			this.onClose(this.id);
 		}
 	}
 
@@ -109,9 +114,7 @@ export default class TCPConnection extends ConnectionNode {
 			Log.warning("TCPConnection " + this.address!.toString() + " closed after " + this.pingOptions.threshold + " failed pings", 1);
 
 			if (this.address !== null) {
-				this.send(this.address.parent, {
-					command: "closeConnection"
-				});
+				this.onClose(this.id);
 			}
 		} else {
 			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
@@ -125,5 +128,9 @@ export default class TCPConnection extends ConnectionNode {
 		}
 
 		this.pingCounter++;
+	}
+
+	get id () {
+		return this.address!.data[this.address!.data.length - 1];
 	}
 }

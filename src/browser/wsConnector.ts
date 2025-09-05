@@ -8,18 +8,22 @@ import { serialize, deserialize } from "../utils/eventUtils.js"
 
 export default class WSConnector extends Node {
 	private registered: boolean = false;
-	protected socket: WebSocket;
+	protected url: string;
+	protected socket!: WebSocket;
 	private options: { interval: number; threshold: number; };
 	private messageHandle: (msg: any) => void;
 	private errorHandle: (err: any) => void;
 	private closeHandle: () => void;
 	private pingInterval: ReturnType<typeof setInterval> | undefined;
 	private pingCounter: number = 0;
+	public readyPromise?: Promise<void>;
+	private readyResolve?: () => void;
+	private readyReject?: (err: any) => void;
 
-	constructor (socket: WebSocket, options: { interval: number; threshold: number; }) {
+	constructor (url: string, options: { interval: number; threshold: number; }) {
 		super();
 		this.options = options;
-		this.socket = socket;
+		this.url = url;
 
 		this.messageHandle = this.onMessage.bind(this);
 		this.errorHandle = this.onError.bind(this);
@@ -28,6 +32,13 @@ export default class WSConnector extends Node {
 
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
+
+		this.readyPromise = new Promise((resolve, reject) => {
+			this.readyResolve = resolve;
+			this.readyReject = reject;
+		});
+
+		this.socket = new WebSocket(this.url);
 
 		this.socket.addEventListener("open", () => {
 			this.socket.addEventListener("message", this.messageHandle);
@@ -89,6 +100,9 @@ export default class WSConnector extends Node {
 					const { address } = event.data.data as { address: string[] };
 					this._address = new Address(address);
 					Log.success("WSConnector registered with remote address " + this.address!.toString(), 1);
+					this.readyResolve!();
+					this.readyResolve = undefined;
+					this.readyReject = undefined;
 				}
 				break;
 			default:
@@ -103,6 +117,12 @@ export default class WSConnector extends Node {
 
 	onError (err: any) {
 		Log.error("WSConnector error: " + err.toString(), 1);
+
+		if (this.readyReject !== undefined) {
+			this.readyReject(err);
+			this.readyResolve = undefined;
+			this.readyReject = undefined;
+		}
 
 		this.onClose();
 	}

@@ -14,15 +14,17 @@ export default class WSConnection extends ConnectionNode {
 	private closeHandle: () => void;
 	private pingInterval: ReturnType<typeof setInterval> | undefined;
 	private pingCounter: number = 0;
+	private onClose: (id: string) => void;
 
-	constructor (socket: WebSocket, options: { interval: number; threshold: number; }) {
+	constructor (socket: WebSocket, options: { interval: number; threshold: number; }, onClose: (id: string) => void) {
 		super ();
 		this.socket = socket;
 		this.options = options;
+		this.onClose = onClose;
 
-		this.messageHandle = this.onMessage.bind(this);
-		this.errorHandle = this.onError.bind(this);
-		this.closeHandle = this.onClose.bind(this);
+		this.messageHandle = this.handleMessage.bind(this);
+		this.errorHandle = this.handleError.bind(this);
+		this.closeHandle = this.handleClose.bind(this);
 	}
 
 	attach (dispatcher: Dispatcher, address: Address) {
@@ -62,7 +64,7 @@ export default class WSConnection extends ConnectionNode {
 		this.socket.send(serialize(event));
 	}
 
-	onMessage (msg: any) {
+	handleMessage (msg: any) {
 		let ev: Event | undefined;
 
 		try {
@@ -92,21 +94,24 @@ export default class WSConnection extends ConnectionNode {
 			ev.dispatch();
 		} else {
 			Log.warning('WSConnection suppressed event to ' + ev.destination.toString(), 1);
+			ev.response({
+				command: ev.data.command + "Response",
+				error: true,
+				details: 'WSConnection suppressed event to ' + ev.destination.toString()
+			});
 		}
 	}
 
-	onError (err: any) {
+	handleError (err: any) {
 		Log.error("WSConnection error: " + err.toString(), 1);
-		this.onClose();
+		this.handleClose();
 	}
 
-	onClose () {
+	handleClose () {
 		if (this.address !== null) {
 			Log.info("WSConnection " + this.address!.toString() + " closed", 1);
 
-			this.send(this.address!.parent, {
-				command: "closeConnection"
-			});
+			this.onClose(this.id);
 		}
 	}
 
@@ -115,9 +120,7 @@ export default class WSConnection extends ConnectionNode {
 			Log.warning("TCPConnection " + this.address!.toString() + " closed after " + this.options.threshold + " failed pings", 1);
 
 			if (this.address !== null) {
-				this.send(this.address.parent, {
-					command: "closeConnection"
-				});
+				this.onClose(this.id);
 			}
 		} else {
 			const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
@@ -131,5 +134,9 @@ export default class WSConnection extends ConnectionNode {
 		}
 
 		this.pingCounter++;
+	}
+
+	get id () {
+		return this.address!.data[this.address!.data.length - 1];
 	}
 }

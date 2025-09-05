@@ -26,6 +26,9 @@ export class TCPConnector extends Node {
 	private messageHandle: (event: Event) => void;
 	private errorHandle: (err: Error) => void;
 	private closeHandle: () => void;
+	public readyPromise?: Promise<void>;
+	private readyResolve?: () => void;
+	private readyReject?: (err: any) => void;
 
 	constructor (options: TCPConnectorOptions) {
 		super ();
@@ -35,6 +38,7 @@ export class TCPConnector extends Node {
 		this.connectedHandle = this.onOpen.bind(this);
 		this.messageHandle = this.onMessage.bind(this);
 		this.errorHandle = this.onError.bind(this);
+		this.messageHandle = this.onMessage.bind(this);
 		this.closeHandle = this.onClose.bind(this);
 	}
 
@@ -42,6 +46,11 @@ export class TCPConnector extends Node {
 		super.attach(dispatcher, address);
 
 		try {
+			this.readyPromise = new Promise((resolve, reject) => {
+				this.readyResolve = resolve;
+				this.readyReject = reject;
+			});
+
 			this.socket = Net.createConnection(this.options.port, this.options.host);
 			this.socket.on("connect", this.connectedHandle);
 			this.processor = new StreamProcessor(this.dispatcher as Dispatcher, this.socket);
@@ -96,6 +105,9 @@ export class TCPConnector extends Node {
 					const { address } = event.data.data as { address: string[] };
 					this._address = new Address(address);
 					Log.success("TCPconnector registered with remote address " + this.address!.toString(), 1);
+					this.readyResolve!();
+					this.readyResolve = undefined;
+					this.readyReject = undefined;
 				}
 				break;
 			default:
@@ -117,6 +129,7 @@ export class TCPConnector extends Node {
 	onError (err: Error) {
 		Log.error("TCPConnector socket error: " + err.toString(), 1);
 		this.onClose();
+		this.readyReject && this.readyReject(err);
 	}
 
 	pingSocket () {

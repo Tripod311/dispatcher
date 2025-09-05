@@ -26,7 +26,6 @@ export interface EventData {
 	error?: boolean;
 	details?: string;
 	data?: any;
-	reqId?: number;
 }
 
 export interface SerializedEvent {

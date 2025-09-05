@@ -10,12 +10,11 @@ export default class StreamProcessor extends EventEmitter {
 	private dataHandle: (chunk: Buffer) => void;
 	private unprocessed: Buffer = Buffer.alloc(0);
 	
-	constructor (dispatcher: Dispatcher, socket: Socket, unprocessed?: Buffer) {
+	constructor (dispatcher: Dispatcher, socket: Socket) {
 		super();
 
 		this.dispatcher = dispatcher;
 		this.socket = socket;
-		if (unprocessed) this.unprocessed = unprocessed;
 		this.dataHandle = this.onData.bind(this);
 		this.socket.on("data", this.dataHandle);
 	}

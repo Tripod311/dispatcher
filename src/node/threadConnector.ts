@@ -10,6 +10,8 @@ export default class ThreadConnector extends Node {
 	private registered: boolean = false;
 	private channel: MessagePort | null = null;
 	private onChannelMessage: (msg: any) => void;
+	public readyPromise?: Promise<void>;
+	private readyResolve?: () => void;
 
 	constructor () {
 		super ();
@@ -17,6 +19,10 @@ export default class ThreadConnector extends Node {
 		Log.setLogLevel(workerData.logLevel);
 
 		this.onChannelMessage = this.channelMessage.bind(this);
+
+		this.readyPromise = new Promise((resolve) => {
+			this.readyResolve = resolve;
+		});
 
 		parentPort!.once("message", (channel: MessagePort) => {
 			this.channel = channel;
@@ -45,6 +51,8 @@ export default class ThreadConnector extends Node {
 					const { address } = ev.data.data as { address: string[] };
 					this.dispatcher = new Dispatcher();
 					this.dispatcher.setRoot(this, new Address(address));
+					this.readyResolve!();
+					delete this.readyResolve;
 				}
 				break;
 			case "ping":

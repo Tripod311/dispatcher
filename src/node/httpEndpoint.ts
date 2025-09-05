@@ -32,6 +32,8 @@ export default class HTTPEndpoint extends EndpointNode {
 		this.server.on("request", this.requestHandle);
 
 		this.setListener("sessionExpired", this.sessionExpired.bind(this));
+
+		this.restrictions.add(this.address!);
 	}
 
 	detach () {
@@ -115,6 +117,11 @@ export default class HTTPEndpoint extends EndpointNode {
 						event.dispatch();
 					} else {
 						Log.warning("HTTPConnection suppressed event to " + event.destination.toString(), 1);
+						event.response({
+							command: event.data.command + "Response",
+							error: true,
+							details: "HTTPConnection suppressed event to " + event.destination.toString()
+						});
 					}
 
 					this.respondWithEvents(response, 200, [new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {

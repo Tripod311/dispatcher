@@ -13,7 +13,7 @@ export default class EndpointNode extends Node {
 	}
 
 	addChild (id: string, n: ConnectionNode) {
-		n.setRestrictions(this.restrictions.clone());
+		n.setRestrictions(this.restrictions);
 
 		super.addChild(id, n);
 	}

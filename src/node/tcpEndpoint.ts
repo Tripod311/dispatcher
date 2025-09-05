@@ -28,20 +28,19 @@ export default class TCPEndpoint extends EndpointNode {
 		this.server.on("connection", this.connectionHandle);
 		this.server.on("error", this.errorHandle);
 
-		this.setListener("closeConnection", this.closeConnection.bind(this));
+		this.restrictions.add(this.address!);
 	}
 
 	handleConnection (socket: Socket) {
 		let id = (this.counter++).toString();
-		this.addChild(id, new TCPConnection(socket, this.pingOptions));
+		this.addChild(id, new TCPConnection(socket, this.pingOptions, this.closeConnection.bind(this)));
 	}
 
 	handleError (err: Error) {
 		Log.error("TCPEndpoint error: " + err.toString(), 1);
 	}
 
-	closeConnection (event: Event) {
-		const id = event.sender.data[this.address!.length];
+	closeConnection (id: string) {
 		this.delChild(id);
 	}
 }

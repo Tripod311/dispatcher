@@ -25,8 +25,7 @@ async function setupPair () {
 
 	const port = server.address().port;
 	const remoteDispatcher = new Dispatcher();
-	const socket = new WebSocket("ws://127.0.0.1:" + port);
-	const remoteConnector = new WSConnector(socket, { interval: 500, threshold: 5 });
+	const remoteConnector = new WSConnector("ws://127.0.0.1:" + port, { interval: 500, threshold: 5 });
 	remoteDispatcher.setRoot(remoteConnector, new Address([]));
 
 	return {
@@ -36,6 +35,8 @@ async function setupPair () {
 		remoteConnector
 	}
 }
+
+vi.stubGlobal("WebSocket", WebSocket);
 
 describe("WebSocket connectivity test", () => {
 	it("Address check", async () => {

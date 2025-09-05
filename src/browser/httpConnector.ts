@@ -13,6 +13,9 @@ export default class HTTPConnector extends Node {
 	private keepAliveTime: number = -1;
 	private pollTimeout: ReturnType<typeof setTimeout> | undefined;
 	private keepAliveTimeout: ReturnType<typeof setTimeout> | undefined;
+	public readyPromise?: Promise<void>;
+	private readyResolve?: () => void;
+	private readyReject?: (err: any) => void;
 
 	constructor (url: string, pollTime: number) {
 		super();
@@ -23,6 +26,11 @@ export default class HTTPConnector extends Node {
 
 	attach (dispatcher: Dispatcher, address: Address) {
 		super.attach(dispatcher, address);
+
+		this.readyPromise = new Promise((resolve, reject) => {
+			this.readyResolve = resolve;
+			this.readyReject = reject;
+		});
 
 		const ev = new Event(this.dispatcher as Dispatcher, new Address([]), new Address([]), {
 			command: "register"
@@ -59,11 +67,18 @@ export default class HTTPConnector extends Node {
 			this.pollTimeout = setTimeout(this.poll.bind(this), this.pollTime);
 
 			Log.success("HTTPConnector registered: " + this.address!.toString(), 1);
+			this.readyResolve!();
+			this.readyResolve = undefined;
+			this.readyReject = undefined;
 		}
 	}
 
 	onRegisterError (err: any) {
 		console.error("HTTPConnector registration error: " + err.toString());
+
+		this.readyReject!(err);
+		this.readyResolve = undefined;
+		this.readyReject = undefined;
 	}
 
 	async keepAlive () {
