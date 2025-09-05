@@ -311,6 +311,52 @@ class MyService extends Node {
   }
 }
 ```
+### Subscribable
+
+The Subscribable class is a special type of Node with built-in subscription management.
+Other nodes can subscribe/unsubscribe to it and receive notifications when events are published.
+
+#### Usage
+```ts
+import { Subscribable } from "@tripod311/dispatch"
+
+class MyChannel extends Subscribable {
+  subscribe(event: Event) {
+    // Always call super.subscribe first
+    super.subscribe(event);
+
+    // Optionally send initial state or welcome data
+    event.response({
+      command: "init",
+      data: { status: "subscribed" },
+    });
+  }
+}
+
+const channel = new MyChannel();
+root.addChild("channel", channel);
+
+// Somewhere else in the system
+someNode.send(["root", "channel"], { command: "subscribe" });
+
+//notify all subscribed nodes
+channel.notify({
+  command: "somethingHappened",
+  data: { ... }
+})
+```
+
+#### Methods
+
+`subscribe(event: Event)`
+Registers a subscriber (based on sender address).
+Can be overridden — just make sure to call super.subscribe(event) first.
+
+`unsubscribe(event: Event)`
+Removes a subscriber.
+
+`notify(data: EventData, except: Address[])`
+Sends data to all subscribers except those listed in except.
 
 ## Moving Nodes to Separate Threads
 

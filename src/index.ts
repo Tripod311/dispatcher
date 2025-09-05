@@ -20,7 +20,7 @@ import WSConnection from "./node/wsConnection.js"
 import WSEndpoint from "./node/wsEndpoint.js"
 
 import Log from "./utils/log.js"
-import { serialize as SerializeEvent, deserialize as DeserializeEvent } from "./utils/eventUtils.js"
+import { serialize as SerializeEvent, deserialize as DeserializeEvent, deserializeSequence as DeserializeSequence } from "./utils/eventUtils.js"
 import StreamProcessor from "./utils/streamProcessor.js"
 
 import HTTPConnector from "./browser/httpConnector.js"
@@ -59,5 +59,6 @@ export {
 	Log,
 	SerializeEvent,
 	DeserializeEvent,
+	DeserializeSequence,
 	StreamProcessor
 }
