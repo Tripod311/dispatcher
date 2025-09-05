@@ -17,12 +17,10 @@
     "dist",
     "README.md"
   ],
-  "dependencies": {
+  "devDependencies": {
     "@types/node": "^24.1.0",
     "ts-jest": "^29.4.0",
-    "typescript": "^5.9.2"
-  },
-  "devDependencies": {
+    "typescript": "^5.9.2",
     "@types/ws": "^8.18.1",
     "ts-node": "^10.9.2",
     "vitest": "^3.2.4",
