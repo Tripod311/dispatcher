@@ -117,7 +117,7 @@ export default class WSConnection extends ConnectionNode {
 
 	pingSocket () {
 		if (this.pingCounter == this.options.threshold) {
-			Log.warning("TCPConnection " + this.address!.toString() + " closed after " + this.options.threshold + " failed pings", 1);
+			Log.warning("WSConnection " + this.address!.toString() + " closed after " + this.options.threshold + " failed pings", 1);
 
 			if (this.address !== null) {
 				this.onClose(this.id);

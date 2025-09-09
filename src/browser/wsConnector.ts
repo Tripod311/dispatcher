@@ -39,6 +39,7 @@ export default class WSConnector extends Node {
 		});
 
 		this.socket = new WebSocket(this.url);
+		this.socket.binaryType = "arraybuffer";
 
 		this.socket.addEventListener("open", () => {
 			this.socket.addEventListener("message", this.messageHandle);
@@ -75,7 +76,7 @@ export default class WSConnector extends Node {
 	onMessage (msg: MessageEvent) {
 		let event;
 		try {
-			event = deserialize(this.dispatcher as Dispatcher, msg.data);
+			event = deserialize(this.dispatcher as Dispatcher, new Uint8Array(msg.data));
 		} catch (e) {
 			Log.error(`WSConnector: Invalid message format \n${JSON.stringify(msg.data)}`, 1);
 			return;
