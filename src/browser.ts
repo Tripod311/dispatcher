@@ -8,7 +8,6 @@ import Subscribable from "./common/subscribable.js"
 
 import Log from "./utils/log.js"
 import { serialize as SerializeEvent, deserialize as DeserializeEvent, deserializeSequence as DeserializeSequence } from "./utils/eventUtils.js"
-import StreamProcessor from "./utils/streamProcessor.js"
 
 import HTTPConnector from "./browser/httpConnector.js"
 import WSConnector from "./browser/wsConnector.js"
@@ -32,6 +31,5 @@ export {
 	Log,
 	SerializeEvent,
 	DeserializeEvent,
-	DeserializeSequence,
-	StreamProcessor
+	DeserializeSequence
 }
