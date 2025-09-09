@@ -9,6 +9,7 @@
   "author": "Tripod ind.tripod@gmail.com",
   "type": "module",
   "main": "dist/index.js",
+  "browser": "dist/browser.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
