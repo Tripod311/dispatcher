@@ -124,7 +124,7 @@ export function deserialize (dispatcher: Dispatcher, buf: Uint8Array): Event {
 	const metaStr = sharedDecoder.decode(metaBytes);
 	const meta = JSON.parse(metaStr);
 
-	const binLength = view.getUint32(offset);
+	const binLength = view.getUint32(offset, true);
 	offset += 4;
 
 	const binary = buf.subarray(offset, offset + binLength);

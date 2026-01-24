@@ -41,7 +41,7 @@ export default class StreamProcessor extends EventEmitter {
 				const event = deserialize(this.dispatcher, this.unprocessed.subarray(0, packageLength));
 				this.emit("message", event);
 			} catch (err: any) {
-				Log.error("StreamProcessor error, can't process package", 2);
+				Log.error("StreamProcessor error, can't process package: " + err.toString(), 2);
 			}
 
 			this.unprocessed = this.unprocessed.slice(packageLength);
