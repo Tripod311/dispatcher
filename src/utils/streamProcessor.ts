@@ -34,7 +34,7 @@ export default class StreamProcessor extends EventEmitter {
 	read () {
 		if (this.unprocessed.length < 4) return;
 
-		let packageLength = this.unprocessed.readUint32BE(0);
+		let packageLength = this.unprocessed.readUint32LE(0);
 
 		while (packageLength <= this.unprocessed!.length) {
 			try {
@@ -44,10 +44,10 @@ export default class StreamProcessor extends EventEmitter {
 				Log.error("StreamProcessor error, can't process package", 2);
 			}
 
-			this.unprocessed = this.unprocessed.subarray(packageLength);
+			this.unprocessed = this.unprocessed.slice(packageLength);
 
-			if (this.unprocessed.length > 4) {
-				packageLength = this.unprocessed.readUint32BE(0);
+			if (this.unprocessed.length >= 4) {
+				packageLength = this.unprocessed.readUint32LE(0);
 			} else {
 				break;
 			}

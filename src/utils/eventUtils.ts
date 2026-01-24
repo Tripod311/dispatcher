@@ -87,16 +87,16 @@ export function serialize (event: Event) {
 	const view = new DataView(buf.buffer);
 	let offset = 0;
 
-	view.setUint32(offset, buf.length);
+	view.setUint32(offset, buf.length, true);
 	offset += 4;
 
-	view.setUint32(offset, metaLength);
+	view.setUint32(offset, metaLength, true);
 	offset += 4;
 
 	buf.set(meta, offset);
 	offset += metaLength;
 
-	view.setUint32(offset, binLength);
+	view.setUint32(offset, binLength, true);
 	offset += 4;
 
 	buf.set(binTotal, offset);
@@ -108,14 +108,14 @@ export function deserialize (dispatcher: Dispatcher, buf: Uint8Array): Event {
 	const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
 	let offset = 0;
 
-	const totalLength = view.getUint32(offset);
+	const totalLength = view.getUint32(offset, true);
 	offset += 4;
 
 	if (totalLength !== buf.length) {
 		throw new Error(`Invalid packet length: expected ${totalLength}, got ${buf.length}`);
 	}
 
-	const metaLength = view.getUint32(offset);
+	const metaLength = view.getUint32(offset, true);
 	offset += 4;
 
 	const metaBytes = buf.subarray(offset, offset + metaLength);
@@ -152,7 +152,7 @@ export function deserializeSequence (dispatcher: Dispatcher, buf: Uint8Array): E
 	let offset = 0;
 
 	while (offset < buf.length) {
-		let packageLength = view.getUint32(offset);
+		let packageLength = view.getUint32(offset, true);
 
 		const event = deserialize(dispatcher, buf.subarray(offset, offset + packageLength));
 		result.push(event);
