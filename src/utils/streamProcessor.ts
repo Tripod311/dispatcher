@@ -8,7 +8,8 @@ export default class StreamProcessor extends EventEmitter {
 	private dispatcher: Dispatcher;
 	private socket: Socket;
 	private dataHandle: (chunk: Buffer) => void;
-	private unprocessed: Buffer = Buffer.alloc(0);
+	private unprocessed: Buffer[] = [];
+	private unprocessedLength: number = 0;
 	
 	constructor (dispatcher: Dispatcher, socket: Socket) {
 		super();
@@ -26,30 +27,58 @@ export default class StreamProcessor extends EventEmitter {
 	}
 
 	onData (chunk: Buffer) {
-		this.unprocessed = Buffer.concat([this.unprocessed, chunk]);
+		this.unprocessed.push(chunk);
+		this.unprocessedLength += chunk.length;
 
 		this.read();
 	}
 
-	read () {
-		if (this.unprocessed.length < 4) return;
+	readHeader (): number {
+		while (this.unprocessed[0].length < 4) {
+			this.unprocessed[0] = Buffer.concat([this.unprocessed[0], this.unprocessed[1]]);
+			this.unprocessed.splice(1, 1);
+		}
 
-		let packageLength = this.unprocessed.readUint32LE(0);
+		return this.unprocessed[0].readUint32LE(0);
+	}
 
-		while (packageLength <= this.unprocessed!.length) {
-			try {
-				const event = deserialize(this.dispatcher, this.unprocessed.subarray(0, packageLength));
-				this.emit("message", event);
-			} catch (err: any) {
-				Log.error("StreamProcessor error, can't process package: " + err.toString(), 2);
-			}
+	collectPacket (length: number): Buffer {
+		const resArr: Buffer[] = [];
 
-			this.unprocessed = this.unprocessed.slice(packageLength);
+		let copied = 0;
 
-			if (this.unprocessed.length >= 4) {
-				packageLength = this.unprocessed.readUint32LE(0);
+		while (copied < length) {
+			const toCopy = length - copied;
+
+			if (this.unprocessed[0].length <= toCopy) {
+				const chunk = this.unprocessed.shift();
+				resArr.push(chunk!);
+				copied += chunk!.length;
 			} else {
-				break;
+				const packetPart = this.unprocessed[0].subarray(0, toCopy);
+				resArr.push(packetPart);
+				this.unprocessed[0] = this.unprocessed[0].subarray(toCopy);
+
+				copied += packetPart.length;
+			}
+		}
+
+		return Buffer.concat(resArr);
+	}
+
+	read () {
+		while (this.unprocessedLength >= 4) {
+			const pl = this.readHeader();
+
+			if (this.unprocessedLength >= pl) {
+				try {
+					const event = deserialize(this.dispatcher, this.collectPacket(pl));
+					this.emit("message", event);
+				} catch (err: any) {
+					Log.error("StreamProcessor error, can't process package: " + err.toString(), 2);
+				}
+
+				this.unprocessedLength -= pl;
 			}
 		}
 	}
