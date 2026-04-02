@@ -34,7 +34,7 @@ export default class StreamProcessor extends EventEmitter {
 	}
 
 	readHeader (): number {
-		while (this.unprocessed[0].length < 4) {
+		while (this.unprocessed[0].length < 4 && this.unprocessed.length > 1) {
 			this.unprocessed[0] = Buffer.concat([this.unprocessed[0], this.unprocessed[1]]);
 			this.unprocessed.splice(1, 1);
 		}
@@ -79,6 +79,8 @@ export default class StreamProcessor extends EventEmitter {
 				}
 
 				this.unprocessedLength -= pl;
+			} else {
+				break;
 			}
 		}
 	}
