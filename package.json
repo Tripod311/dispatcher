@@ -1,6 +1,6 @@
 {
   "name": "@tripod311/dispatch",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "dispatcher to connect js in browser and node",
   "keywords": [
     "js"
