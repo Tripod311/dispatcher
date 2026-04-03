@@ -76,6 +76,7 @@ export default class StreamProcessor extends EventEmitter {
 					this.emit("message", event);
 				} catch (err: any) {
 					Log.error("StreamProcessor error, can't process package: " + err.toString(), 2);
+					this.emit("error", err.toString());
 				}
 
 				this.unprocessedLength -= pl;
