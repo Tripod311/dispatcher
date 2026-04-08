@@ -157,7 +157,7 @@ export class Node {
 		return id;
 	}
 
-	chainAsync (destination: Address | string[], data: EventData, callback: NodeListener, trace: boolean = false): Promise<Event> {
+	chainAsync (destination: Address | string[], data: EventData, trace: boolean = false): Promise<Event> {
 		return new Promise((resolve, reject) => {
 			this.chain(
 				destination,
