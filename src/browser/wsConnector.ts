@@ -20,6 +20,8 @@ export default class WSConnector extends Node {
 	private readyResolve?: () => void;
 	private readyReject?: (err: any) => void;
 
+	public socketClosed?: () => void;
+
 	constructor (url: string, options: { interval: number; threshold: number; }) {
 		super();
 		this.options = options;
@@ -132,6 +134,8 @@ export default class WSConnector extends Node {
 		clearInterval(this.pingInterval);
 		this.registered = false;
 		this.socket.close();
+
+		this.socketClosed && this.socketClosed();
 	}
 
 	pingSocket () {

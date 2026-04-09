@@ -30,6 +30,8 @@ export class TCPConnector extends Node {
 	private readyResolve?: () => void;
 	private readyReject?: (err: any) => void;
 
+	public socketClosed?: () => void;
+
 	constructor (options: TCPConnectorOptions) {
 		super ();
 
@@ -124,6 +126,8 @@ export class TCPConnector extends Node {
 		clearInterval(this.pingInterval);
 		this.pingCounter = 0;
 		this.socket.end();
+
+		this.socketClosed && this.socketClosed();
 	}
 
 	onError (err: Error) {

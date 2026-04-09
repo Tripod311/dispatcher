@@ -262,6 +262,8 @@ Essentials:
 
 `chain(destination, data, callback, trace = false)` — send an event and wait for a response (request/response pattern).
 
+`chainAsync(destination, data, trace = false)` — async version of `chain`, returns `Promise<Event>`
+
 `addChild(id, node)` — attach a child node under a sub-address.
 
 `delChild(id)` - delete/detach a child node
@@ -477,6 +479,12 @@ const connector = new TCPConnector({
 
 dispatcher.setRoot(connector, new Address([]));
 
+connector.socketClosed = () => {
+  console.log("Connection down");
+
+  // reconnect or dispose
+};
+
 connector.readyPromise.then(() => {
   connector.send(connector.address.parent, {
     command: "subServiceData",
@@ -552,6 +560,12 @@ const connector = new WSConnector("ws://127.0.0.1:8080", {
   threshold: 5,
 });
 dispatcher.setRoot(connector, new Address([]));
+
+connector.socketClosed = () => {
+  console.log("Connection down");
+
+  // reconnect or dispose
+}
 
 connector.readyPromise.then(() => {
   connector.send(connector.address.parent, {
