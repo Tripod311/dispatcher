@@ -1,5 +1,6 @@
-import type { Socket } from "net"
+import type { Socket as TCPSocket } from "net"
 import Net from "net"
+import { connect as tlsConnect, type TLSSocket, type ConnectionOptions as TLSConnectionOptions } from "tls"
 import { Node } from "../common/node.js"
 import { Event } from "../common/event.js"
 import Address from "../common/address.js"
@@ -13,11 +14,17 @@ export interface TCPConnectorOptions {
 	threshold: number;
 	host: string;
 	port: number;
+	// mTLS
+	useTLS?: boolean;
+	useMTLS?: boolean;
+	key?: string;
+	cert?: string;
+	ca?: string[];
 }
 
 export class TCPConnector extends Node {
 	private options: TCPConnectorOptions;
-	protected socket!: Socket;
+	protected socket!: TCPSocket | TLSSocket;
 	private processor!: StreamProcessor;
 	private registered: boolean = false;
 	private pingCounter: number = 0;
@@ -53,12 +60,40 @@ export class TCPConnector extends Node {
 				this.readyReject = reject;
 			});
 
-			this.socket = Net.createConnection(this.options.port, this.options.host);
-			this.socket.on("connect", this.connectedHandle);
+			if (this.options.useTLS) {
+			    const tlsOptions: TLSConnectionOptions = {
+			        port: this.options.port,
+			        host: this.options.host,
+			        minVersion: 'TLSv1.3', 
+			    };
+
+			    if (this.options.useMTLS) {
+			        tlsOptions.key = this.options.key;
+			        tlsOptions.cert = this.options.cert;
+
+			        if (this.options.ca) {
+			            tlsOptions.ca = this.options.ca;
+			        }
+			    } else {
+			        if (this.options.ca) {
+			            tlsOptions.ca = this.options.ca;
+			        }
+			    }
+
+			    this.socket = tlsConnect(tlsOptions);
+			    this.socket.on("secureConnect", this.connectedHandle);
+
+			} else {
+			    this.socket = Net.createConnection(this.options.port, this.options.host);
+			    this.socket.on("connect", this.connectedHandle);
+			}
+
+			// Общая логика для обоих типов сокетов (благодаря идентичному API)
 			this.processor = new StreamProcessor(this.dispatcher as Dispatcher, this.socket);
 			this.processor.on("message", this.messageHandle);
+
 			this.socket.on("error", this.errorHandle);
-			this.socket.on("close", this.closeHandle)
+			this.socket.on("close", this.closeHandle);
 		} catch (e) {
 			this.errorHandle(e as Error);
 		}
