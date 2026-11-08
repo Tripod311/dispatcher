@@ -88,7 +88,6 @@ export class TCPConnector extends Node {
 			    this.socket.on("connect", this.connectedHandle);
 			}
 
-			// Общая логика для обоих типов сокетов (благодаря идентичному API)
 			this.processor = new StreamProcessor(this.dispatcher as Dispatcher, this.socket);
 			this.processor.on("message", this.messageHandle);
 
@@ -116,9 +115,24 @@ export class TCPConnector extends Node {
 	}
 
 	onOpen () {
-		Log.info("TCPConnector connected successfully", 1);
-		if (this.options.interval > 0) {
-			this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
+		if (this.options.useTLS) {
+			Log.info("TCPConnector (TLS) connected successfully", 1);
+
+			const socket = this.socket as TLSSocket;
+			const cert = socket.getPeerCertificate();
+
+			if (!socket.authorized || !cert || Object.keys(cert).length === 0) {
+				Log.warning("TLS socket is not authorized", 1);
+			}
+
+			if (this.options.interval > 0) {
+				this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
+			}
+		} else {
+			Log.info("TCPConnector connected successfully", 1);
+			if (this.options.interval > 0) {
+				this.pingInterval = setInterval(this.pingSocket.bind(this), this.options.interval);
+			}
 		}
 	}
 
